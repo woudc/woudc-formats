@@ -11,6 +11,6 @@ Package: woudc-formats
 Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}, python-pkg-resources, woudc-extcsv
 Homepage: http://woudc.org
-Description: WMO WOUDC quality assessment library
+Description: WMO WOUDC format transformation library
  woudc-formats is a Python package for converting non-standard data formats
  into WOUDC extended CSV.
