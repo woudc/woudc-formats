@@ -105,8 +105,8 @@ OLTMANS S.,ESRL/GMD
 PAL S.,ISTS
 PARRISH A.,Millitech/U. MA
 PAZMINO A.,CNRS
-PORTAFAIX T.,Universite de la Reunion
-POSNY F.,University de la Reunion
+PORTAFAIX T.,Université de La Réunion
+POSNY F.,Université de La Réunion
 QUEL E.,OAPA-CEILAP
 QUEREL R.,NIWA
 REDONDAS A.,AEMET
