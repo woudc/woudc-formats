@@ -101,8 +101,8 @@ class shadoz_converter(converter):
                 key = lines[0:number].strip()
                 metadata_dict[key] = lines[number + 1:].strip()
                 self.ori.append(lines)
-                if 'SHADOZ Principal Investigator' in lines \
-                or 'Station Principal Investigator' in lines:
+                if ('SHADOZ Principal Investigator' in lines
+                   or 'Station Principal Investigator' in lines):
                     self.inv.append(lines)
                 elif 'Missing or bad values' in lines:
                     bad_value = lines[number + 1:].strip()
@@ -196,7 +196,9 @@ class shadoz_converter(converter):
                     new_date = new_date.replace('.', '')
                     new_date = new_date.replace(' ', '-')
                     new_date_temp = new_date.split('-')
-                    new_date = '%s-%s-%s' % (new_date_temp[2], new_date_temp[1], new_date_temp[0])
+                    new_date = '%s-%s-%s' % (new_date_temp[2],
+                                             new_date_temp[1],
+                                             new_date_temp[0])
                     metadata_dict["SHADOZ format data created"] = new_date
             self.station_info["Data_Generation"] = [
                 metadata_dict["SHADOZ format data created"],
@@ -211,7 +213,6 @@ class shadoz_converter(converter):
         self.station_info["Location"] = [metadata_dict["Latitude (deg)"],
                                          metadata_dict["Longitude (deg)"],
                                          metadata_dict["Elevation (m)"]]
-
 
         self.station_info["Timestamp"] = ["+00:00:00",
                                           metadata_dict["Launch Date"],
@@ -229,7 +230,6 @@ class shadoz_converter(converter):
                 " ", " ", " ", " ",
                 " ", " ", " ", " "
             ]
-
 
         Temp_Radiosonde = metadata_dict["Radiosonde, SN"]
 
@@ -267,8 +267,8 @@ class shadoz_converter(converter):
             LOGGER.info('Processing station metadata information.')
             for row in station_metadata['features']:
                 properties = row['properties']
-                if station == properties['platform_name']\
-                and Agency == properties['acronym']:
+                if (station == properties['platform_name']
+                   and Agency == properties['acronym']):
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for item in header_list:
                         if temp_dict[item] == '':
@@ -297,8 +297,8 @@ class shadoz_converter(converter):
                     inst_model = 'N/A'
                     inst_number = 'N/A'
                 else:
-                    if ',' in metadata_dict["Sonde Instrument, SN"] or\
-                    ' ' in metadata_dict["Sonde Instrument, SN"].strip():
+                    if (',' in metadata_dict["Sonde Instrument, SN"] or
+                       ' ' in metadata_dict["Sonde Instrument, SN"].strip()):
                         key = re.split(',| ', metadata_dict["Sonde Instrument, SN"].strip())[1]  # noqa
                         metadata_dict["Sonde Instrument, SN"] = key
                     else:
@@ -358,13 +358,13 @@ class shadoz_converter(converter):
         try:
             if self.station_info["Platform"][1] == "436":
                 LOGGER.info('Special treatment for reunion Platform inforamtion.')  # noqa
-                self.station_info["Platform"][3] = self.station_info["Platform"][3].encode('UTF-8')
-                self.station_info["Platform"][2] = self.station_info["Platform"][2].encode('UTF-8')
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][0], field = 'Type')
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][1], field = 'ID')
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][2], field = 'Name')
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][3], field = 'Country')
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][4], field = 'GAW_ID')
+                self.station_info["Platform"][3] = self.station_info["Platform"][3].encode('UTF-8')  # noqa
+                self.station_info["Platform"][2] = self.station_info["Platform"][2].encode('UTF-8')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][0], field = 'Type')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][1], field = 'ID')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][2], field = 'Name')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][3], field = 'Country')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][4], field = 'GAW_ID')  # noqa
             else:
                 LOGGER.info('Adding Platform Table.')
                 ecsv.add_data("PLATFORM",
@@ -627,7 +627,7 @@ class AMES_2160_converter(converter):
                             new_date = date.replace(item, date_map[item])
                             break
                     date = new_date
-                    date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+                    date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
                     time = tok[len(tok) - 2][:8]
             if counter == 2:
                 if flag_first == 0:
@@ -660,7 +660,7 @@ class AMES_2160_converter(converter):
                         date_tok[1] = "0%s" % (date_tok[1])
                     date = "%s-%s-%s" % (date_tok[0], date_tok[1], date_tok[2])
                     time = ''
-                    date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+                    date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
                 break
 
         if flag:
@@ -806,7 +806,6 @@ class AMES_2160_converter(converter):
         except Exception, err:
             msg = 'Unable to process station metadata due to: %s' % str(err)
             LOGGER.error(msg)
-
 
         if 'version' in metadata_dict:
             Version = metadata_dict['version']
@@ -1014,7 +1013,7 @@ class AMES_2160_Boulder_converter(converter):
                          1:new_date.index('-') + 3])
                 year = new_date[len(new_date) - 4:len(new_date)]
                 date = '%s-%s-%s' % (year, month, day)
-                date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+                date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
                 time = tok[len(tok) - 2][:8]
             if counter == 2:
                 tok = line.split()

@@ -48,9 +48,7 @@
 # Optional argument 'metadata' is used
 
 import woudc_formats
-import os
 import logging
-import sys
 from woudc_formats.util import setup_logger
 
 logfile = 'PATH TO LOG FILE'
@@ -62,7 +60,8 @@ LOGGER = logging.getLogger(__name__)
 outpath = 'PATH TO OUTPUT EXT-CSV FILE'
 inpath = 'PATH TO INPUT SHADOZ FILE'
 
-metadata = {'station': 'San Pedro', 'type': 'STN', 'ID': '523', 'country': 'Costa Rica'}
+metadata = {'station': 'San Pedro', 'type': 'STN',
+            'ID': '523', 'country': 'Costa Rica'}
 
-ecsv = woudc_format.load('SHADOZ', inpath, metadata)
-woudc_format.dump(ecsv, outpath)
+ecsv = woudc_formats.load('SHADOZ', inpath, metadata)
+woudc_formats.dump(ecsv, outpath)

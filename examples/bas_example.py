@@ -47,9 +47,7 @@
 # Example : Use woudc_format.load function and dump function to create file
 
 import woudc_formats
-import os
 import logging
-import sys
 from woudc_formats.util import setup_logger
 
 logfile = 'PATH TO LOG FILE'
@@ -61,5 +59,5 @@ LOGGER = logging.getLogger(__name__)
 outpath = 'PATH TO OUTPUT EXT-CSV FILE'
 inpath = 'PATH TO INPUT BAS FILE'
 
-ecsv = woudc_format.load('BAS', inpath)
-woudc_format.dump(ecsv, outpath)
+ecsv = woudc_formats.load('BAS', inpath)
+woudc_formats.dump(ecsv, outpath)

@@ -48,6 +48,7 @@ from woudc_formats import load
 from woudc_formats.util import setup_logger
 import logging
 
+
 class Test(unittest.TestCase):
     """Test suite for Writer"""
 
@@ -56,7 +57,7 @@ class Test(unittest.TestCase):
         logfile = 'log.log'
         loglevel = 'ERROR'
         setup_logger(logfile, loglevel)
-        LOGGER = logging.getLogger(__name__)
+        LOGGER = logging.getLogger(__name__)  # noqa
 
     def tearDown(self):
         """return to pristine state"""

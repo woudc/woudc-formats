@@ -55,9 +55,7 @@
 # 'metadata'
 
 import woudc_formats
-import os
 import logging
-import sys
 from woudc_formats.util import setup_logger
 
 logfile = 'PATH TO LOG FILE'
@@ -69,7 +67,8 @@ LOGGER = logging.getLogger(__name__)
 outpath = 'PATH TO OUTPUT EXT-CSV FILE'
 inpath = 'PATH TO INPUT AMES-2160 FILE'
 
-metadata = {'station': 'San Pedro', 'agency': 'U_Colorado', 'ID': '523', 'country': 'Costa Rica'}
+metadata = {'station': 'San Pedro', 'agency': 'U_Colorado',
+            'ID': '523', 'country': 'Costa Rica'}
 
-ecsv = woudc_format.load('AMES-2160', inpath, metadata)
-woudc_format.dump(ecsv, outpath)
+ecsv = woudc_formats.load('AMES-2160', inpath, metadata)
+woudc_formats.dump(ecsv, outpath)

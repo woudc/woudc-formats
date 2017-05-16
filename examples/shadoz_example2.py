@@ -48,9 +48,7 @@
 # Without optional argument 'metadata'
 
 import woudc_formats
-import os
 import logging
-import sys
 from woudc_formats.util import setup_logger
 
 logfile = 'PATH TO LOG FILE'
@@ -62,5 +60,5 @@ LOGGER = logging.getLogger(__name__)
 outpath = 'PATH TO OUTPUT EXT-CSV FILE'
 inpath = 'PATH TO INPUT SHADOZ FILE'
 
-ecsv = woudc_format.load('SHADOZ', inpath)
-woudc_format.dump(ecsv, outpath)
+ecsv = woudc_formats.load('SHADOZ', inpath)
+woudc_formats.dump(ecsv, outpath)

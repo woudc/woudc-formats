@@ -57,9 +57,7 @@
 # loads method takes string object as input rather than a file path.
 
 import woudc_formats
-import os
 import logging
-import sys
 from woudc_formats.util import setup_logger
 
 logfile = 'PATH TO LOG FILE'
@@ -71,10 +69,11 @@ LOGGER = logging.getLogger(__name__)
 outpath = 'PATH TO OUTPUT EXT-CSV FILE'
 inpath = 'PATH TO INPUT AMES-2160 FILE'
 
-metadata = {'station': 'San Pedro', 'agency': 'U_Colorado', 'ID': '523', 'country': 'Costa Rica'}
+metadata = {'station': 'San Pedro', 'agency': 'U_Colorado',
+            'ID': '523', 'country': 'Costa Rica'}
 
-with open (inpath, 'r') as f:
+with open(inpath, 'r') as f:
     s = f.read()
 
-ecsv = woudc_format.loads('AMES-2160', s, metadata)
-woudc_format.dump(ecsv, outpath)
+ecsv = woudc_formats.loads('AMES-2160', s, metadata)
+woudc_formats.dump(ecsv, outpath)
