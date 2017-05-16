@@ -101,8 +101,8 @@ class shadoz_converter(converter):
                 key = lines[0:number].strip()
                 metadata_dict[key] = lines[number + 1:].strip()
                 self.ori.append(lines)
-                if ('SHADOZ Principal Investigator' in lines
-                   or 'Station Principal Investigator' in lines):
+                if ('SHADOZ Principal Investigator' in lines or
+                   'Station Principal Investigator' in lines):
                     self.inv.append(lines)
                 elif 'Missing or bad values' in lines:
                     bad_value = lines[number + 1:].strip()
@@ -267,8 +267,8 @@ class shadoz_converter(converter):
             LOGGER.info('Processing station metadata information.')
             for row in station_metadata['features']:
                 properties = row['properties']
-                if (station == properties['platform_name']
-                   and Agency == properties['acronym']):
+                if (station == properties['platform_name'] and
+                   Agency == properties['acronym']):
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for item in header_list:
                         if temp_dict[item] == '':
@@ -407,7 +407,7 @@ class shadoz_converter(converter):
                       "RelativeHumidity,SampleTemperature")
         x = 1
         LOGGER.info('Insert payload value to Profile Table.')
-        while x < len(self.data_truple)-1:
+        while x < len(self.data_truple) - 1:
 
             ecsv.add_data("PROFILE",
                           ",".join(self.data_truple[x]))
