@@ -1000,7 +1000,7 @@ class AMES_2160_Boulder_converter(converter):
             format_type = None
             counter += 1
             if counter == 1:
-                station_name = 'Boulder'
+                station_name = 'Boulder ESRL HQ (CO)'
                 tok = line.split()
                 idex = line.index('   ')
                 PI = line[0:idex].strip()
@@ -1136,7 +1136,7 @@ class AMES_2160_Boulder_converter(converter):
                     geometry_list.append(geometry)
                     counter = counter + 1
             if counter == 0:
-                LOGGER.warning('Unable to find stationi: %s, start lookup process.') % station_name  # noqa
+                LOGGER.warning('Unable to find station: %s, start lookup process.') % station_name  # noqa
                 try:
                     ID = 'na'
                     Type = 'unknown'

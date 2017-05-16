@@ -45,13 +45,18 @@
 
 import unittest
 from woudc_formats import load
-
+from woudc_formats.util import setup_logger
+import logging
 
 class Test(unittest.TestCase):
     """Test suite for Writer"""
 
     def setUp(self):
         """setup test fixtures, etc."""
+        logfile = 'log.log'
+        loglevel = 'ERROR'
+        setup_logger(logfile, loglevel)
+        LOGGER = logging.getLogger(__name__)
 
     def tearDown(self):
         """return to pristine state"""
@@ -143,7 +148,7 @@ class Test(unittest.TestCase):
         self.assertEqual(s.extcsv_ds["PLATFORM$1"]["Country"],
                          ["Réunion"])
         self.assertEqual(s.extcsv_ds["DATA_GENERATION$1"]["Agency"],
-                         ["NOAA-CMDI"])
+                         ["U_LaReunion"])
 
     def test_bas(self):
         """
