@@ -49,6 +49,7 @@ import datetime
 from pywoudc import WoudcClient
 import woudc_extcsv
 from woudc_formats import util
+import ntpath
 
 __version__ = "0.1.0"
 
@@ -76,8 +77,9 @@ class shadoz_converter(converter):
         self.data_truple = []
         self.station_info = {}
         self.ori = []
+        self.inv = []
 
-    def parser(self, file_content):
+    def parser(self, file_content, metadata_dic):
         # Place left for time and define logging
         """
         :parm file_content: opened file object for SHADOZ file.
@@ -89,6 +91,7 @@ class shadoz_converter(converter):
         counter = 0
         flag = 0
         LOGGER.info('Parsing file, collecting data from file.')
+        bad_value = ''
 
         for lines in file_content:
             if lines == "":
@@ -98,6 +101,11 @@ class shadoz_converter(converter):
                 key = lines[0:number].strip()
                 metadata_dict[key] = lines[number + 1:].strip()
                 self.ori.append(lines)
+                if ('SHADOZ Principal Investigator' in lines or
+                   'Station Principal Investigator' in lines):
+                    self.inv.append(lines)
+                elif 'Missing or bad values' in lines:
+                    bad_value = lines[number + 1:].strip()
             elif "sec     hPa         km       C         %" in lines:
                 flag = 1
                 continue
@@ -145,6 +153,37 @@ class shadoz_converter(converter):
                 ",", ".")
             metadata_dict["Station Principal Investigator(s)"] = re_in
 
+        if 'station' in metadata_dic:
+            station = metadata_dic['station']
+        else:
+            try:
+                number = metadata_dict["STATION"].index(",")
+                station = metadata_dict["STATION"][0:number]
+            except Exception, err:
+                msg = 'Unable to get station name due to: %s' % str(err)
+                LOGGER.error(msg)
+
+        if 'agency' in metadata_dic:
+            Agency = metadata_dic['agency']
+        else:
+            try:
+                Agency = util.get_config_value(
+                    "AGENCY", station)
+            except Exception, err:
+                LOGGER.error(str(err))
+                Agency = ' '
+                pass
+
+        try:
+            station = util.get_config_value(
+                "NAME CONVERTER",
+                metadata_dict["STATION"][0:number])
+        except Exception, err:
+            LOGGER.error(str(err))
+            pass
+
+        station = station.decode('UTF-8')
+
         try:
             LOGGER.info('Getting Agency information from resource.cfg.')
             date_map = {'January': '01', 'February': '02', 'March': '03',
@@ -163,7 +202,7 @@ class shadoz_converter(converter):
                     metadata_dict["SHADOZ format data created"] = new_date
             self.station_info["Data_Generation"] = [
                 metadata_dict["SHADOZ format data created"],
-                util.get_config_value('SHADOZ', 'DATA_GENERATION.Agency'),
+                Agency,
                 metadata_dict["SHADOZ Version"],
                 metadata_dict["Station Principal Investigator(s)"]
             ]
@@ -179,17 +218,28 @@ class shadoz_converter(converter):
                                           metadata_dict["Launch Date"],
                                           metadata_dict["Launch Time (UT)"]]
 
-        self.station_info["Flight_Summary"] = [
-            metadata_dict['Integrated O3 until EOF (DU)'],
-            " ", " ", " ", " ",
-            " ", " ", " ", " "
-        ]
+        if 'Integrated O3 until EOF (DU)' in metadata_dict:
+            self.station_info["Flight_Summary"] = [
+                metadata_dict['Integrated O3 until EOF (DU)'],
+                " ", " ", " ", " ",
+                " ", " ", " ", " "
+            ]
+        elif 'Final Integrated O3 (DU)' in metadata_dict:
+            self.station_info["Flight_Summary"] = [
+                metadata_dict['Final Integrated O3 (DU)'],
+                " ", " ", " ", " ",
+                " ", " ", " ", " "
+            ]
 
         Temp_Radiosonde = metadata_dict["Radiosonde, SN"]
 
-        idx = Temp_Radiosonde.index(',')
-
-        metadata_dict["Radiosonde, SN"] = Temp_Radiosonde[0:idx]
+        try:
+            idx = Temp_Radiosonde.index(',')
+            metadata_dict["Radiosonde, SN"] = Temp_Radiosonde[0:idx]
+        except Exception, err:
+            msg = 'Radiosonde invalid value'
+            LOGGER.error(msg)
+            metadata_dict["Radiosonde, SN"] = " "
 
         self.station_info["Auxillary_Data"] = [
             metadata_dict["Radiosonde, SN"], " ",
@@ -204,53 +254,65 @@ class shadoz_converter(converter):
             msg = 'Unable to get metadata due to: %S' % str(err)
             LOGGER.error(msg)
 
+        header_list = ['type', 'ID', 'station', 'country', 'gaw_id']
+        pywoudc_header_list = ['platform_type', 'platform_id', 'platform_name',
+                               'country', 'gaw_id']
+        temp_dict = {}
+        for item in header_list:
+            temp_dict[item] = ''
+            if item in metadata_dic.keys():
+                temp_dict[item] = metadata_dic[item]
+
         try:
             LOGGER.info('Processing station metadata information.')
             for row in station_metadata['features']:
                 properties = row['properties']
-                number = metadata_dict["STATION"].index(",")
-                station = metadata_dict["STATION"][0:number]
-
-                try:
-                    station = util.get_config_value(
-                        "NAME CONVERTER",
-                        metadata_dict["STATION"][0:number])
-
-                except Exception, err:
-                    LOGGER.error(str(err))
-                    pass
-
-                if station == properties['platform_name']:
+                if (station == properties['platform_name'] and
+                   Agency == properties['acronym']):
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
-                    self.station_info["Platform"] = [
-                        properties['platform_type'],
-                        properties['woudc_platform_identifier'],
-                        properties['platform_name'],
-                        properties['country'],
-                        properties['gaw_platform_identifier']
-                    ]
+                    for item in header_list:
+                        if temp_dict[item] == '':
+                            temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
                     break
+            self.station_info["Platform"] = []
+
+            for item in header_list:
+                self.station_info["Platform"].append(temp_dict[item])
+
         except Exception, err:
             msg = 'Unable to process station metadata due to: %s' % str(err)
             LOGGER.error(msg)
 
         try:
             LOGGER.info('Processing instrument metadata information.')
-            if ',' in metadata_dict["Sonde Instrument, SN"]:
-                indx = metadata_dict["Sonde Instrument, SN"].index(',')
-                key = metadata_dict["Sonde Instrument, SN"][indx + 1:].strip()
-                metadata_dict["Sonde Instrument, SN"] = key
+            inst_model = ''
+            inst_number = ''
+            if 'inst model' in metadata_dic:
+                inst_model = metadata_dic['inst model']
+            if 'inst number' in metadata_dic:
+                inst_number = metadata_dic['inst number']
+
+            if inst_model == '' and inst_number == '':
+                if metadata_dict["Sonde Instrument, SN"] == bad_value:
+                    inst_model = 'N/A'
+                    inst_number = 'N/A'
+                else:
+                    if (',' in metadata_dict["Sonde Instrument, SN"] or
+                       ' ' in metadata_dict["Sonde Instrument, SN"].strip()):
+                        key = re.split(',| ', metadata_dict["Sonde Instrument, SN"].strip())[1]  # noqa
+                        metadata_dict["Sonde Instrument, SN"] = key
+                    else:
+                        metadata_dict["Sonde Instrument, SN"] = metadata_dict["Sonde Instrument, SN"].strip()  # noqa
+                    inst_model = metadata_dict["Sonde Instrument, SN"][0:2]
+                    inst_number = metadata_dict["Sonde Instrument, SN"][2:]
 
             self.station_info["Instrument"] = [
-                "ECC",
-                metadata_dict["Sonde Instrument, SN"][0:2],
-                metadata_dict["Sonde Instrument, SN"][2:].strip()
-            ]
+                "ECC", inst_model, inst_number]
         except Exception, err:
             msg = 'Unable to process instrument metadata due to: %s' % str(err)
             LOGGER.error(msg)
 
-    def creater(self):
+    def creater(self, filename):
         """
         :return ecsv: ext-csv object that is ready to be dumped out
 
@@ -269,6 +331,8 @@ class shadoz_converter(converter):
             ecsv.add_comment('have been translated into extCSV file format for WOUDC archiving.')  # noqa
             ecsv.add_comment('This translation process re-formats these data into comply with WOUDC standards.')  # noqa
             ecsv.add_comment('\n')
+            ecsv.add_comment('Source File: %s' % filename)
+            ecsv.add_comment('\n')
             x = len(self.ori)
             c = 0
             while c < x:
@@ -285,19 +349,22 @@ class shadoz_converter(converter):
         LOGGER.info('Adding Data_generation Table.')
         ecsv.add_data("DATA_GENERATION",
                       ",".join(self.station_info["Data_Generation"]))
+        x = len(self.inv)
+        c = 0
+        while c < x:
+            ecsv.add_comment(self.inv[c])
+            c = c + 1
 
         try:
             if self.station_info["Platform"][1] == "436":
                 LOGGER.info('Special treatment for reunion Platform inforamtion.')  # noqa
-                country = self.station_info["Platform"][3]
-                country = country.encode('utf-8')
-                self.station_info["Platform"].pop(3)
-                self.station_info["Platform"].insert(3, "123")
-                ecsv.add_data("PLATFORM",
-                              ",".join(self.station_info["Platform"]))
-                ecsv.clear_field("PLATFORM", "Country")
-                ecsv.add_data("PLATFORM", country, field='Country')
-
+                self.station_info["Platform"][3] = self.station_info["Platform"][3].encode('UTF-8')  # noqa
+                self.station_info["Platform"][2] = self.station_info["Platform"][2].encode('UTF-8')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][0], field = 'Type')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][1], field = 'ID')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][2], field = 'Name')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][3], field = 'Country')  # noqa
+                ecsv.add_data("PLATFORM", self.station_info["Platform"][4], field = 'GAW_ID')  # noqa
             else:
                 LOGGER.info('Adding Platform Table.')
                 ecsv.add_data("PLATFORM",
@@ -341,6 +408,7 @@ class shadoz_converter(converter):
         x = 1
         LOGGER.info('Insert payload value to Profile Table.')
         while x < len(self.data_truple) - 1:
+
             ecsv.add_data("PROFILE",
                           ",".join(self.data_truple[x]))
             x = x + 1
@@ -559,8 +627,7 @@ class AMES_2160_converter(converter):
                             new_date = date.replace(item, date_map[item])
                             break
                     date = new_date
-                    date_generated = datetime.datetime.utcnow().strftime(
-                        '%Y-%m-%d')
+                    date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
                     time = tok[len(tok) - 2][:8]
             if counter == 2:
                 if flag_first == 0:
@@ -593,8 +660,7 @@ class AMES_2160_converter(converter):
                         date_tok[1] = "0%s" % (date_tok[1])
                     date = "%s-%s-%s" % (date_tok[0], date_tok[1], date_tok[2])
                     time = ''
-                    date_generated = datetime.datetime.utcnow().strftime(
-                        '%Y-%m-%d')
+                    date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
                 break
 
         if flag:
@@ -681,7 +747,7 @@ class AMES_2160_converter(converter):
         else:
             try:
                 LOGGER.info('Looking for Agency in PI list.')
-                Agency = util.get_NDACC_agency(ScientificAuthority)
+                Agency = util.get_NDACC_agency(ScientificAuthority).strip()
             except Exception, err:
                 msg = 'Unable to find agency due to: %s' % str(err)
                 LOGGER.error(msg)
@@ -717,20 +783,20 @@ class AMES_2160_converter(converter):
                     msg = 'Unable to find the station in lookup due to: %s' % str(err)  # noqa
                     LOGGER.error(msg)
             elif counter == 1:
-                ID = properties_list[0]['woudc_platform_identifier']
+                ID = properties_list[0]['platform_id']
                 Type = properties_list[0]['platform_type']
                 Country = properties_list[0]['country']
-                GAW = properties_list[0]['gaw_platform_identifier']
+                GAW = properties_list[0]['gaw_id']
                 Lat = str(geometry_list[0][1])
                 Long = str(geometry_list[0][0])
             else:
                 length = 0
                 for item in properties_list:
                     if item['acronym'].lower() == Agency.lower() or item['contributor_name'].lower() == Agency.lower():  # noqa
-                        ID = item['woudc_platform_identifier']
+                        ID = item['platform_id']
                         Type = item['platform_type']
                         Country = item['country']
-                        GAW = item['gaw_platform_identifier']
+                        GAW = item['gaw_id']
                         Lat = str(geometry_list[length][1])
                         Long = str(geometry_list[length][0])
                     length = length + 1
@@ -933,7 +999,7 @@ class AMES_2160_Boulder_converter(converter):
             format_type = None
             counter += 1
             if counter == 1:
-                station_name = 'Boulder'
+                station_name = 'Boulder ESRL HQ (CO)'
                 tok = line.split()
                 idex = line.index('   ')
                 PI = line[0:idex].strip()
@@ -947,8 +1013,7 @@ class AMES_2160_Boulder_converter(converter):
                          1:new_date.index('-') + 3])
                 year = new_date[len(new_date) - 4:len(new_date)]
                 date = '%s-%s-%s' % (year, month, day)
-                date_generated = datetime.datetime.utcnow().strftime(
-                    '%Y-%m-%d')
+                date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
                 time = tok[len(tok) - 2][:8]
             if counter == 2:
                 tok = line.split()
@@ -1070,7 +1135,7 @@ class AMES_2160_Boulder_converter(converter):
                     geometry_list.append(geometry)
                     counter = counter + 1
             if counter == 0:
-                LOGGER.warning('Unable to find stationi: %s, start lookup process.') % station_name  # noqa
+                LOGGER.warning('Unable to find station: %s, start lookup process.') % station_name  # noqa
                 try:
                     ID = 'na'
                     Type = 'unknown'
@@ -1081,20 +1146,20 @@ class AMES_2160_Boulder_converter(converter):
                     msg = 'Unable to find the station in lookup due to: %s' % str(err)  # noqa
                     LOGGER.error(msg)
             elif counter == 1:
-                ID = properties_list[0]['woudc_platform_identifier']
+                ID = properties_list[0]['platform_id']
                 Type = properties_list[0]['platform_type']
                 Country = properties_list[0]['country']
-                GAW = properties_list[0]['gaw_platform_identifier']
+                GAW = properties_list[0]['gaw_id']
                 Lat = str(geometry_list[0][0])
                 Long = str(geometry_list[0][1])
             else:
                 length = 0
                 for item in properties_list:
                     if item['acronym'].strip() == Agency.strip():
-                        ID = item['woudc_platform_identifier']
+                        ID = item['platform_id']
                         Type = item['platform_type']
                         Country = item['country']
-                        GAW = item['gaw_platform_identifier']
+                        GAW = item['gaw_id']
                         Lat = str(geometry_list[length][1])
                         Long = str(geometry_list[length][0])
                     length = length + 1
@@ -1268,6 +1333,12 @@ def load(InFormat, inpath, metadata_dict={}):
     ext-csv obj (dictionary of dictionary), and returns the
     Ext-CSV object.
     """
+
+    head, tail = ntpath.split(inpath)
+    if tail == "":
+        filename = ntpath.basename(head)
+    else:
+        filename = tail
     if not bool(metadata_dict):
         metadata_dict = {}
     if InFormat.lower() == 'shadoz':
@@ -1277,7 +1348,7 @@ def load(InFormat, inpath, metadata_dict={}):
         with open(inpath) as f:
             try:
                 LOGGER.info('parsing file.')
-                converter.parser(f)
+                converter.parser(f, metadata_dict)
             except Exception, err:
                 if 'referenced before assignment' in str(err):
                     err = 'Unsupported SHADOZ formats.'
@@ -1286,7 +1357,7 @@ def load(InFormat, inpath, metadata_dict={}):
                 raise WOUDCFormatParserError(msg)
             try:
                 LOGGER.info('create ext-csv table.')
-                ecsv = converter.creater()
+                ecsv = converter.creater(filename)
             except Exception, err:
                 msg = 'Unable to create ext-csv table due to: %s' % str(err)
                 LOGGER.error(msg)
@@ -1390,7 +1461,7 @@ def loads(InFormat, str_object, metadata_dict={}):
         converter = shadoz_converter()
         try:
             LOGGER.info('parsing file.')
-            converter.parser(str_obj)
+            converter.parser(str_obj, metadata_dict)
         except Exception, err:
             if 'referenced before assignment' in str(err):
                 err = 'Unsupported SHADOZ formats.'
@@ -1399,7 +1470,7 @@ def loads(InFormat, str_object, metadata_dict={}):
             raise WOUDCFormatParserError(msg)
         try:
             LOGGER.info('create ext-csv table.')
-            ecsv = converter.creater()
+            ecsv = converter.creater('N/A')
         except Exception, err:
             msg = 'Unable to create ext-csv table due to: %s' % str(err)
             LOGGER.error(msg)
@@ -1590,7 +1661,7 @@ def cli():
             LOGGER.info('Input is totalozone snapshot CSV: %s', input_path)
             try:
                 LOGGER.info('Downloading totalozone snapshot CSV...')
-                output = util.download_zip(input_path, 'totalozone.zip')
+                output = util.download_zip(input_path)
                 print output.getvalue()
                 LOGGER.info('Downloading totalozone snapshot CSV...')
             except Exception, err:
