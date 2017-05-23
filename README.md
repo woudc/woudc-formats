@@ -44,7 +44,7 @@ Required Arguments:
 
 Optional Arguments:
     --metadata: a dictionary formatted string containing some specified station metadation information
-            ex: {"station": "XXX", "agency": "XXX", "inst type": "ECC", "inst number": "XXXXX", "SA": "XX" }
+            ex: {"station": "XXX", "agency": "XXX", "inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX"}
 ```
 
 ### API
