@@ -365,7 +365,7 @@ class shadoz_converter(converter):
         x = len(self.inv)
         c = 0
         while c < x:
-            ecsv.add_comment(self.inv[c])
+            ecsv.add_table_comment('DATA_GENERATION', self.inv[c])
             c = c + 1
 
         try:
