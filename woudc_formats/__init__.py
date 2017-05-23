@@ -1712,8 +1712,6 @@ def cli():
         os.remove(os.path.join(output_path, 'totalozone.csv'))
         LOGGER.info('TotalOzone masterfile process complete.')
     else:
-        # files = open(ARGS.inpath)
-        # s = files.read()
         ecsv = load(ARGS.format, ARGS.inpath, metadata_dict)
         if ecsv is not None:
             dump(ecsv, ARGS.outpath)
