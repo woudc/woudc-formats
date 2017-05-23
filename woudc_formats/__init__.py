@@ -196,6 +196,8 @@ class shadoz_converter(converter):
                     new_date = new_date.replace('.', '')
                     new_date = new_date.replace(' ', '-')
                     new_date_temp = new_date.split('-')
+                    if len(new_date_temp[0]) == 1:
+                        new_date_temp[0] = '0%s' % new_date_temp[0]
                     new_date = '%s-%s-%s' % (new_date_temp[2],
                                              new_date_temp[1],
                                              new_date_temp[0])
@@ -213,6 +215,17 @@ class shadoz_converter(converter):
         self.station_info["Location"] = [metadata_dict["Latitude (deg)"],
                                          metadata_dict["Longitude (deg)"],
                                          metadata_dict["Elevation (m)"]]
+
+        try:
+            temp_datetime = metadata_dict["Launch Date"]
+            Year = temp_datetime[0:4]
+            Month = temp_datetime[4:6]
+            Day = temp_datetime[6:].strip()
+            metadata_dict["Launch Date"] = '%s-%s-%s' % (Year, Month, Day)
+        except Exception, err:
+            msg = 'No Launch Date'
+            LOGGER.error(msg)
+            metadata_dict["Launch Date"] = 'N/A'
 
         self.station_info["Timestamp"] = ["+00:00:00",
                                           metadata_dict["Launch Date"],
@@ -259,7 +272,7 @@ class shadoz_converter(converter):
                                'country', 'gaw_id']
         temp_dict = {}
         for item in header_list:
-            temp_dict[item] = ''
+            temp_dict[item] = ' '
             if item in metadata_dic.keys():
                 temp_dict[item] = metadata_dic[item]
 
@@ -271,7 +284,7 @@ class shadoz_converter(converter):
                    Agency == properties['acronym']):
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for item in header_list:
-                        if temp_dict[item] == '':
+                        if temp_dict[item] == ' ':
                             temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
                     break
             self.station_info["Platform"] = []
@@ -1699,9 +1712,9 @@ def cli():
         os.remove(os.path.join(output_path, 'totalozone.csv'))
         LOGGER.info('TotalOzone masterfile process complete.')
     else:
-        files = open(ARGS.inpath)
-        s = files.read()
-        ecsv = loads(ARGS.format, s, metadata_dict)
+#        files = open(ARGS.inpath)
+#        s = files.read()
+        ecsv = load(ARGS.format, ARGS.inpath, metadata_dict)
         if ecsv is not None:
             dump(ecsv, ARGS.outpath)
 
