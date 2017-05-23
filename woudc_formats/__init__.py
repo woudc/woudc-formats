@@ -306,18 +306,23 @@ class shadoz_converter(converter):
                 inst_number = metadata_dic['inst number']
 
             if inst_model == '' and inst_number == '':
+                if (',' in metadata_dict["Sonde Instrument, SN"] or
+                   ' ' in metadata_dict["Sonde Instrument, SN"].strip()):
+                    key = re.split(',| ', metadata_dict["Sonde Instrument, SN"].strip())  # noqa
+                    key = key[len(key) - 1]
+                    metadata_dict["Sonde Instrument, SN"] = key
+                else:
+                    metadata_dict["Sonde Instrument, SN"] = metadata_dict["Sonde Instrument, SN"].strip()  # noqa
                 if metadata_dict["Sonde Instrument, SN"] == bad_value:
                     inst_model = 'N/A'
                     inst_number = 'N/A'
                 else:
-                    if (',' in metadata_dict["Sonde Instrument, SN"] or
-                       ' ' in metadata_dict["Sonde Instrument, SN"].strip()):
-                        key = re.split(',| ', metadata_dict["Sonde Instrument, SN"].strip())[1]  # noqa
-                        metadata_dict["Sonde Instrument, SN"] = key
+                    if '-' in metadata_dict["Sonde Instrument, SN"]:
+                        inst_model = 'N/A'
+                        inst_number = metadata_dict["Sonde Instrument, SN"]
                     else:
-                        metadata_dict["Sonde Instrument, SN"] = metadata_dict["Sonde Instrument, SN"].strip()  # noqa
-                    inst_model = metadata_dict["Sonde Instrument, SN"][0:2]
-                    inst_number = metadata_dict["Sonde Instrument, SN"][2:]
+                        inst_model = metadata_dict["Sonde Instrument, SN"][0:2]
+                        inst_number = metadata_dict["Sonde Instrument, SN"][2:]
 
             self.station_info["Instrument"] = [
                 "ECC", inst_model, inst_number]
@@ -365,7 +370,7 @@ class shadoz_converter(converter):
         x = len(self.inv)
         c = 0
         while c < x:
-            ecsv.add_comment(self.inv[c])
+            ecsv.add_table_comment('DATA_GENERATION', self.inv[c])
             c = c + 1
 
         try:
