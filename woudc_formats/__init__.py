@@ -309,7 +309,7 @@ class shadoz_converter(converter):
                 if (',' in metadata_dict["Sonde Instrument, SN"] or
                    ' ' in metadata_dict["Sonde Instrument, SN"].strip()):
                     key = re.split(',| ', metadata_dict["Sonde Instrument, SN"].strip())  # noqa
-                    key = key[len(key)-1]
+                    key = key[len(key) - 1]
                     metadata_dict["Sonde Instrument, SN"] = key
                 else:
                     metadata_dict["Sonde Instrument, SN"] = metadata_dict["Sonde Instrument, SN"].strip()  # noqa
@@ -323,7 +323,6 @@ class shadoz_converter(converter):
                     else:
                         inst_model = metadata_dict["Sonde Instrument, SN"][0:2]
                         inst_number = metadata_dict["Sonde Instrument, SN"][2:]
-                
 
             self.station_info["Instrument"] = [
                 "ECC", inst_model, inst_number]
