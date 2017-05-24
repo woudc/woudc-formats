@@ -100,10 +100,10 @@ class shadoz_converter(converter):
                 number = lines.index(":")
                 key = lines[0:number].strip()
                 metadata_dict[key] = lines[number + 1:].strip()
-                self.ori.append(lines)
+                self.ori.append(lines.strip('\n'))
                 if ('SHADOZ Principal Investigator' in lines or
                    'Station Principal Investigator' in lines):
-                    self.inv.append(lines)
+                    self.inv.append(lines.strip('\n'))
                 elif 'Missing or bad values' in lines:
                     bad_value = lines[number + 1:].strip()
             elif "sec     hPa         km       C         %" in lines:
@@ -171,7 +171,7 @@ class shadoz_converter(converter):
                     "AGENCY", station)
             except Exception, err:
                 LOGGER.error(str(err))
-                Agency = ' '
+                Agency = 'N/A'
                 pass
 
         try:
@@ -234,15 +234,12 @@ class shadoz_converter(converter):
         if 'Integrated O3 until EOF (DU)' in metadata_dict:
             self.station_info["Flight_Summary"] = [
                 metadata_dict['Integrated O3 until EOF (DU)'],
-                " ", " ", " ", " ",
-                " ", " ", " ", " "
-            ]
+                "", "", "", "", "", "", "", ""]
+
         elif 'Final Integrated O3 (DU)' in metadata_dict:
             self.station_info["Flight_Summary"] = [
                 metadata_dict['Final Integrated O3 (DU)'],
-                " ", " ", " ", " ",
-                " ", " ", " ", " "
-            ]
+                "", "", "", "", "", "", "", ""]
 
         Temp_Radiosonde = metadata_dict["Radiosonde, SN"]
 
@@ -252,13 +249,12 @@ class shadoz_converter(converter):
         except Exception, err:
             msg = 'Radiosonde invalid value'
             LOGGER.error(msg)
-            metadata_dict["Radiosonde, SN"] = " "
+            metadata_dict["Radiosonde, SN"] = ""
 
         self.station_info["Auxillary_Data"] = [
-            metadata_dict["Radiosonde, SN"], " ",
+            metadata_dict["Radiosonde, SN"], "",
             metadata_dict["Background current (uA)"],
-            " ", " ", "PUMP", " "
-        ]
+            "", "", "PUMP", ""]
 
         try:
             LOGGER.info('Getting station metadata by pywoudc.')
@@ -272,7 +268,7 @@ class shadoz_converter(converter):
                                'country', 'gaw_id']
         temp_dict = {}
         for item in header_list:
-            temp_dict[item] = ' '
+            temp_dict[item] = ''
             if item in metadata_dic.keys():
                 temp_dict[item] = metadata_dic[item]
 
@@ -284,7 +280,7 @@ class shadoz_converter(converter):
                    Agency == properties['acronym']):
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for item in header_list:
-                        if temp_dict[item] == ' ':
+                        if temp_dict[item] == '':
                             temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
                     break
             self.station_info["Platform"] = []
@@ -320,6 +316,9 @@ class shadoz_converter(converter):
                     if '-' in metadata_dict["Sonde Instrument, SN"]:
                         inst_model = 'N/A'
                         inst_number = metadata_dict["Sonde Instrument, SN"]
+                    elif 'z' == metadata_dict["Sonde Instrument, SN"][0:1].lower():  # noqa
+                        inst_model = metadata_dict["Sonde Instrument, SN"][0:1]  # noqa
+                        inst_number = metadata_dict["Sonde Instrument, SN"][1:]  # noqa
                     else:
                         inst_model = metadata_dict["Sonde Instrument, SN"][0:2]
                         inst_number = metadata_dict["Sonde Instrument, SN"][2:]
@@ -348,9 +347,9 @@ class shadoz_converter(converter):
             ecsv.add_comment('These data were originally received by the WOUDC in SHADOZ file format and')  # noqa
             ecsv.add_comment('have been translated into extCSV file format for WOUDC archiving.')  # noqa
             ecsv.add_comment('This translation process re-formats these data into comply with WOUDC standards.')  # noqa
-            ecsv.add_comment('\n')
+            ecsv.add_comment('')
             ecsv.add_comment('Source File: %s' % filename)
-            ecsv.add_comment('\n')
+            ecsv.add_comment('')
             x = len(self.ori)
             c = 0
             while c < x:
