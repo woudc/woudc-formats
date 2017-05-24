@@ -227,6 +227,17 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
             metadata_dict["Launch Date"] = 'N/A'
 
+        try:
+            tok = metadata_dict["Launch Time (UT)"].split(':')
+            if len(tok[0]) == 1:
+                metadata_dict["Launch Time (UT)"] = '0%s' % metadata_dict["Launch Time (UT)"]  # noqa
+            if len(tok) == 2:
+                metadata_dict["Launch Time (UT)"] = '%s:00' % metadata_dict["Launch Time (UT)"]  # noqa
+        except Exception, err:
+            msg = 'Launch Time not found.'
+            LOGGER.error(msg)
+            metadata_dict["Launch Time (UT)"] = 'UNKNOWN'
+
         self.station_info["Timestamp"] = ["+00:00:00",
                                           metadata_dict["Launch Date"],
                                           metadata_dict["Launch Time (UT)"]]
@@ -319,9 +330,12 @@ class shadoz_converter(converter):
                     elif 'z' == metadata_dict["Sonde Instrument, SN"][0:1].lower():  # noqa
                         inst_model = metadata_dict["Sonde Instrument, SN"][0:1]  # noqa
                         inst_number = metadata_dict["Sonde Instrument, SN"][1:]  # noqa
-                    else:
+                    elif re.search('[a-zA-Z]', metadata_dict["Sonde Instrument, SN"][0:2]):  # noqa:
                         inst_model = metadata_dict["Sonde Instrument, SN"][0:2]
                         inst_number = metadata_dict["Sonde Instrument, SN"][2:]
+                    else:
+                        inst_model = 'UNKNOWN'
+                        inst_number = metadata_dict["Sonde Instrument, SN"]
 
             self.station_info["Instrument"] = [
                 "ECC", inst_model, inst_number]
