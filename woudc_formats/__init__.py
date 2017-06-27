@@ -83,7 +83,7 @@ class shadoz_converter(converter):
         # Place left for time and define logging
         """
         :parm file_content: opened file object for SHADOZ file.
-
+        :parm metadata_dic: user specified metadata information
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
         metadata_dict = {}
@@ -93,23 +93,30 @@ class shadoz_converter(converter):
         LOGGER.info('Parsing file, collecting data from file.')
         bad_value = ''
 
+        # Going through SHADOZ file line by line
         for lines in file_content:
             if lines == "":
                 continue
             if ":" in lines:
+                # Each line will be seperated by :, as header and value
                 number = lines.index(":")
                 key = lines[0:number].strip()
                 metadata_dict[key] = lines[number + 1:].strip()
                 self.ori.append(lines.strip('\n'))
+
+                # Variation of the line header
                 if ('SHADOZ Principal Investigator' in lines or
                    'Station Principal Investigator' in lines):
                     self.inv.append(lines.strip('\n'))
                 elif 'Missing or bad values' in lines:
                     bad_value = lines[number + 1:].strip()
+
+            # Locate payload starting line
             elif "sec     hPa         km       C         %" in lines:
                 flag = 1
                 continue
             elif flag == 1:
+                # Pick and Choose required data from payload
                 if "*" in lines[16:26].strip():
                     self.data_truple.insert(counter, [lines[6:16].strip(),
                                                       lines[46:56].strip(),
@@ -131,8 +138,11 @@ class shadoz_converter(converter):
                 counter = counter + 1
 
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
+
+        # Getting Information from Config file for CONTENT table
         try:
             LOGGER.info('Getting Content Table information from resource.cfg')
+            # station_info dictionary stores parsed data
             self.station_info["Content"] = [
                 util.get_config_value("SHADOZ", "CONTENT.Class"),
                 util.get_config_value("SHADOZ", "CONTENT.Category"),
@@ -143,6 +153,8 @@ class shadoz_converter(converter):
             msg = 'Unable to get Content Table information due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
 
+        # Change date format to meet WOUDC requirement
+        # Parsing data from SHADOZ to WOUDC format
         if "," in metadata_dict["SHADOZ format data created"]:
             re_data = metadata_dict["SHADOZ format data created"].replace(
                 ",", ".")
@@ -167,6 +179,7 @@ class shadoz_converter(converter):
             Agency = metadata_dic['agency']
         else:
             try:
+                # Get agency information from foncig
                 Agency = util.get_config_value(
                     "AGENCY", station)
             except Exception, err:
@@ -175,6 +188,7 @@ class shadoz_converter(converter):
                 pass
 
         try:
+            # Map Name from SHADOZ file to WOUDC databse's Name
             station = util.get_config_value(
                 "NAME CONVERTER",
                 metadata_dict["STATION"][0:number])
@@ -185,6 +199,7 @@ class shadoz_converter(converter):
         station = station.decode('UTF-8')
 
         try:
+            # Formating date information
             LOGGER.info('Getting Agency information from resource.cfg.')
             date_map = {'January': '01', 'February': '02', 'March': '03',
                         'April': '04', 'May': '05', 'June': '06', 'July': '07',
@@ -217,6 +232,7 @@ class shadoz_converter(converter):
                                          metadata_dict["Elevation (m)"]]
 
         try:
+            # Formatting Date
             temp_datetime = metadata_dict["Launch Date"]
             Year = temp_datetime[0:4]
             Month = temp_datetime[4:6]
@@ -274,12 +290,17 @@ class shadoz_converter(converter):
             msg = 'Unable to get metadata due to: %S' % str(err)
             LOGGER.error(msg)
 
+        # Collecting station metadata by using pywoudc
+        # Station name and agency name is required to find
+        # Station metadata from pywoudc
         header_list = ['type', 'ID', 'station', 'country', 'gaw_id']
         pywoudc_header_list = ['platform_type', 'platform_id', 'platform_name',
                                'country', 'gaw_id']
         temp_dict = {}
         for item in header_list:
             temp_dict[item] = ''
+            # Pre set an empty dictionary, if user passed in
+            # this specified information, insert into dictionary
             if item in metadata_dic.keys():
                 temp_dict[item] = metadata_dic[item]
 
@@ -289,8 +310,11 @@ class shadoz_converter(converter):
                 properties = row['properties']
                 if (station == properties['platform_name'] and
                    Agency == properties['acronym']):
+                    # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for item in header_list:
+                        # Insert data into dictionary only when this 
+                        # field is empty
                         if temp_dict[item] == '':
                             temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
                     break
@@ -304,6 +328,7 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
 
         try:
+            # Processing Instrument information by using pywoudc
             LOGGER.info('Processing instrument metadata information.')
             inst_model = ''
             inst_number = ''
@@ -324,6 +349,8 @@ class shadoz_converter(converter):
                     inst_model = 'N/A'
                     inst_number = 'N/A'
                 else:
+                    # Try to parse instrument data collected from
+                    # SHADOZ file
                     if '-' in metadata_dict["Sonde Instrument, SN"]:
                         inst_model = 'N/A'
                         inst_number = metadata_dict["Sonde Instrument, SN"]
@@ -459,12 +486,19 @@ class Vaisala_converter(converter):
         self.station_info = {}
 
     def parser(self, file_content, metadata_dic):
+        """
+        :parm file_content: opened file object for SHADOZ file.
+        :parm metadata_dic: user specified metadata informatiom
+        Agency, SA, ID, Station(Name), Country are required as input
+        Processing of data, collecting required information for WOUDC EXT-CSV.
+        """
 
         metadata = {}
         flag = 0
         counter = 0
 
         for line in file_content:
+            # Collecting information from Vaisala file
             if line.strip() == '':
                 continue
             elif 'Started at' in line:
@@ -489,6 +523,7 @@ class Vaisala_converter(converter):
                 time = str(int(min)*60 + int(seconds))
                 cur_line = []
                 counter = counter + 1
+                # Pick and choose required information for payload
                 cur_line = [line[11:18].strip(), line[76:80].strip(),
                             line[31:37].strip(), '', '', '', time,
                             line[20:27].strip(), line[40:44].strip(), '']
@@ -497,6 +532,7 @@ class Vaisala_converter(converter):
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
         try:
             LOGGER.info('Getting Content Table information from resource.cfg')
+            # station_info dictionary stores processed data
             self.station_info["Content"] = [
                 util.get_config_value("VAISALA", "CONTENT.Class"),
                 util.get_config_value("VAISALA", "CONTENT.Category"),
@@ -536,6 +572,8 @@ class Vaisala_converter(converter):
 
         LOGGER.info('Processing Instrument information')
         try:
+            # Parsing instrument information collected from
+            # Vaisala file
             inst_model = ''
             inst_number = ''
             if 'inst model' in metadata_dic:
@@ -567,6 +605,8 @@ class Vaisala_converter(converter):
             Lat = 'N/A'
             Lon = 'N/A'
             Evl = 'N/A'
+            # Parsing location information Collected
+            # from vaisala file
             location_info_list_tmp = metadata['location'].split(' ')
             loc_info_list = []
             for item in location_info_list_tmp:
@@ -596,6 +636,7 @@ class Vaisala_converter(converter):
             date_tok = metadata['date'].split(' ')
             day = date_tok[0]
             month = date_tok[1]
+            # Formatting date
             date_map = {'January': '01', 'February': '02', 'March': '03',
                         'April': '04', 'May': '05', 'June': '06', 'July': '07',
                         'August': '08', 'September': '09', 'October': '10',
@@ -617,6 +658,8 @@ class Vaisala_converter(converter):
 
         LOGGER.info('Processing Flight_Summary information')
         try:
+            # Calculating TotalOzone Value
+            # TotalOzone = IntegratedO3 + ResidualO3
             IntO3 = ''
             ResO3 = ''
             TotO3 = ''
@@ -721,7 +764,7 @@ class BAS_converter(converter):
         """
         flag = 0
         counter = 0
-
+        # Collecting data from BAS file
         for line in file_content:
             if line == "":
                 continue
@@ -752,6 +795,7 @@ class BAS_converter(converter):
                 flag = 1
                 continue
 
+            # Collecting payload data
             if flag == 1:
                 self.data_truple.insert(counter, [line[:4].strip(),
                                                   line[4:7].strip(),
@@ -771,7 +815,7 @@ class BAS_converter(converter):
             util.get_config_value(station, 'agency_name'), "1.0",
             util.get_config_value(station, 'sci_auth')
         ]
-
+        # Get all these value from config
         self.station_info["Platform"] = [util.get_config_value(station,
                                          'platform_type'),
                                          util.get_config_value(station,
@@ -866,18 +910,12 @@ class AMES_2160_converter(converter):
         """
         :parm file_content: opened file object for AMES file.
         :parm metadata_dict: dictionary stores user inputed station metadata
-
+        Station name and Agency name is required in order to process AMES file
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
         client = WoudcClient()
         counter = 0
         flag = False
-        '''sta_map_key = ['ALERT NWT', 'ANDOYA', 'DUMONT D\'URVOZONE', 'EUREKA',
-                       'FARADAY', 'HILO', 'HOHENPEISSENOZONE', 'IZANA',
-                       'LAUDER', 'LEGIONOWO', 'NATAL', 'NEUMAYER',
-                       'NY-ALESUND', 'OHP', 'PARAMARIBO', 'PAYERNE',
-                       'PRAHA', 'REUNION ISL', 'SCORESBYSUNDOZONE', 'THULE',
-                       'TORONTO', 'TSUKUBA', 'UCCLE', 'YAKUTSK']'''
         LOGGER.info('Parsing AMES-2160 file.')
         LOGGER.info('Collecting header inforamtion')
         flag_first = 0
@@ -886,7 +924,12 @@ class AMES_2160_converter(converter):
         date_tok = []
         for line in file_content:
             counter += 1
+            # Collecting information line by line
             if counter == 1:
+            # Two situation: 
+            #      1. first line contains 2160
+            #      2. ndacc AMES-2160, contains a header line for the file
+            # Only AMES from ndacc with header contains time information(hh:mm:ss)
                 if '2160' in line:
                     station_name = metadata_dict['station']
                     flag = True
@@ -901,6 +944,8 @@ class AMES_2160_converter(converter):
                     time = time[0:8]
                     continue
             elif counter == 2:
+                # Second line of AMES is SA, need to reformat it to WOUDC
+                # Standard
                 if 'SA' in metadata_dict:
                     PI = metadata_dict['SA'].upper().strip()
                 else:
@@ -911,13 +956,20 @@ class AMES_2160_converter(converter):
                     else:
                         PI = line.strip()
             elif counter == 3:
+                # Third line is the agency name, usually is different
+                # from the name in WOUDC database, it is perfered
+                # for user to pass in agency name
                 if 'agency' in metadata_dict:
                     Agency = metadata_dict['agency']
                 else:
                     Agency = 'UNKNOWN'
             if counter == 5:
+                # line 5 is program name
                 self.mname = line
             if counter == 7:
+                # Parsing date information
+                # First date information is data collection date
+                # Second date is data generation date
                 date_tok_temp = line.split(' ')
                 for item in date_tok_temp:
                     item = item.strip()
@@ -949,26 +1001,29 @@ class AMES_2160_converter(converter):
             pote_payload_counter = 0
             element_index = 0
             level_counter = 0
-            ib1_index = None
-            ib2_index = None
-            inst_index = None
-            height_reached = False
+            ib1_index = None  # flag: find ib1 or not
+            ib2_index = None  # flag: find ib2 or not
+            inst_index = None  # flag: find instrument information or not
+            height_reached = False  # flag: find station elvation or not
             level_data = []
             inst_raw = None
-            level_reached = False
-            level_data_reached = False
-            pressure_reached = False
-            payload_element_done = False
-            ecc_inst_reached = False
+            level_reached = False  # flag: metadata header reached or not
+            level_data_reached = False  # flag: metadata value readed or not
+            pressure_reached = False  # flag: payload header reached or not
+            payload_element_done = False  # flag: reached end payload header or not
+            ecc_inst_reached = False  # flag: Does file in specific format that instrument info followed by a ECC line
             LOGGER.info('Checking observation condition.')
             for line in file_content:
+                # Some AMES file use () rather than [], change it
                 line = line.replace('(', '[')
                 line = line.replace(')', ']')
                 counter += 1
                 if ('Time after launch' in line or
                    'Pressure at observation' in line):
+                    # Flagging payload header reached
                     pressure_reached = True
                 if pressure_reached and 'zzzzz' in line:
+                    # flagging payload header ended
                     payload_element_done = True
                 if ('[' in line and pressure_reached and
                         not payload_element_done):
@@ -979,14 +1034,18 @@ class AMES_2160_converter(converter):
                         element_mapping.pop(test_str)
                     element_index += 1
                 if ecc_inst_reached:
+                    # ecc_inst_reached reached, next line is instrument information
                     inst_raw = line.strip()
                     ecc_inst_reached = False
                 if line.strip() == 'ECC':
+                    # specific format where 'ECC' followed by instrument info
                     ecc_inst_reached = True
                 if 'Number of levels' in line:
+                    # metadata header section reached
                     level_reached = True
                 if level_reached:
                     level_counter += 1
+                    # Collecting metadata header, and index for specific header
                     if 'Ozone background after exposure to ozone in laboratory Ib1' in line:  # noqa
                         ib1_index = level_counter - 1
                     if 'Ozone background on filter just prior to launch Ib2' in line:  # noqa
@@ -1001,28 +1060,38 @@ class AMES_2160_converter(converter):
                     if 'Serial number of ECC' in line:
                         inst_index = level_counter - 1
                     if len(re.findall('[A-Za-z]+', line)) == 0:
+                        # Metadata value line only contains number
+                        # Potential metadata value
                         if not level_data_reached:
                             if line == '':
                                 level_counter -= 1
                                 continue
                             line_tok = line.split(' ')
                             if len(line_tok) > 8:
+                                # Metadata value found
                                 level_data_reached = True
                                 data_block_size = level_counter - 1
                     if level_data_reached:
+                        # Collecting metadata value into list
                         if (len(level_data) < data_block_size and
                            line[0] != ' '):
                             if len(re.findall('[A-Za-z]+', line)) > 0:
+                                # metadata value line with letter is corresponde to one header
                                 level_data.append(line.strip())
                                 continue
                             line_tok = line.split(' ')
+                            # metadata value line with only number cooresponde to multiple
+                            # header, each value seperated by space
                             for item in line_tok:
                                 item = item.strip()
                                 if item != ' ' and item != '':
                                     level_data.append(item)
                         else:
+                            # only payload information starts with space, 
+                            # if space found, payload line reached
                             level_data_reached = False
                             level_reached = False
+                            # Parse collected metadata, if found
                             if ib1_index is not None:
                                 ib1 = level_data[ib1_index]
                             else:
@@ -1043,6 +1112,8 @@ class AMES_2160_converter(converter):
                 if (not level_reached and
                    len(re.findall('[A-Za-z]+', line)) == 0):
                     # potential payload line
+                    # Walk through this block of statement to find out
+                    # what logic is used to identify payload line
                     line_tok = line.split()
                     if len(line_tok) >= 8:
                         if prev_tok_count == 0:
@@ -1055,6 +1126,7 @@ class AMES_2160_converter(converter):
                             else:
                                 prev_tok_count = len(line_tok)
                         if pote_payload_line_num == 0:
+                            # found starting payload line
                             pote_payload_line_num = counter
                         pote_payload_counter += 1
                         if pote_payload_counter == 10:
@@ -1082,6 +1154,8 @@ class AMES_2160_converter(converter):
         ScientificAuthority = PI
 
         if Agency == 'UNKNOWN':
+            # if Agency is not passed in by user, and not found in AMES,
+            # looks for agency based on SA name, might return None
             try:
                 LOGGER.info('Looking for Agency in PI list.')
                 Agency = util.get_NDACC_agency(ScientificAuthority).strip()
@@ -1097,6 +1171,12 @@ class AMES_2160_converter(converter):
             LOGGER.error(msg)
 
         try:
+            # processing station metadata from pywoudc, there might be
+            # multiple record found for one station under different agency.
+            # Therefore, Agency is required to process station metadata
+            # Any variable or code relate to geometry is used to access
+            # Geometry information returned by pywoudc, not used anymore,
+            # but can be de-commentted to make it work
             properties_list = []
             # geometry_list = []
             counter = 0
@@ -1177,6 +1257,9 @@ class AMES_2160_converter(converter):
         self.station_info['Flight_Summary'] = ['', '', '', '', '', '',
                                                '', '', '']
 
+        # Pick and choose payload data
+        # if user using loads method, file_content is a list,
+        # there is a special logic to threat it if it is a list (define line_num to 7)
         line_num = 7
         LOGGER.info('Collecting payload data.')
         if pote_payload_line_num != 0:
