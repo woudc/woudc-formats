@@ -213,8 +213,11 @@ class Test(unittest.TestCase):
         Tests for AMES-2160
         """
         AMES_filename = "tests/le140101.b11"
+        AMES_filename2 = 'tests/bu20170609.b18'
         a = load('AMES-2160', AMES_filename,
-                 {"station": "Lerwick", "agency": "ukmo"})
+                 {"station": "Lerwick", "agency": "UKMO"})
+        b = load('AMES-2160', AMES_filename2,
+                 {"station": "Boulder ESRL HQ (CO)", "agency": "NOAA-CMDL"})
 
         self.assertTrue("CONTENT$1" in a.extcsv_ds.keys())
         self.assertTrue("DATA_GENERATION$1" in a.extcsv_ds.keys())
@@ -294,98 +297,86 @@ class Test(unittest.TestCase):
         self.assertEqual(a.extcsv_ds["PLATFORM$1"]["Country"],
                          ["United Kingdom"])
         self.assertEqual(a.extcsv_ds["DATA_GENERATION$1"]["Agency"],
-                         ["ukmo"])
+                         ["UKMO"])
 
-    def test_Boulder(self):
-        """
-        Test for Boulder
-        """
-        Boulder_filename = "tests/Boulder.txt"
-        bd = load('AMES-2160-Boulder', Boulder_filename)
-
-        self.assertTrue("CONTENT$1" in bd.extcsv_ds.keys())
-        self.assertTrue("DATA_GENERATION$1" in bd.extcsv_ds.keys())
-        self.assertTrue("PLATFORM$1" in bd.extcsv_ds.keys())
-        self.assertTrue("INSTRUMENT$1" in bd.extcsv_ds.keys())
-        self.assertTrue("LOCATION$1" in bd.extcsv_ds.keys())
-        self.assertTrue("TIMESTAMP$1" in bd.extcsv_ds.keys())
-        self.assertTrue("FLIGHT_SUMMARY$1" in bd.extcsv_ds.keys())
-        self.assertTrue("AIXILLARY_DATA$1" in bd.extcsv_ds.keys())
-        self.assertTrue("PROFILE$1" in bd.extcsv_ds.keys())
-        self.assertTrue("Class" in bd.extcsv_ds["CONTENT$1"].keys())
-        self.assertTrue("Category" in bd.extcsv_ds["CONTENT$1"].keys())
-        self.assertTrue("Level" in bd.extcsv_ds["CONTENT$1"].keys())
-        self.assertTrue("Form" in bd.extcsv_ds["CONTENT$1"].keys())
-        self.assertTrue("Date" in bd.extcsv_ds["DATA_GENERATION$1"].keys())
-        self.assertTrue("Agency" in bd.extcsv_ds["DATA_GENERATION$1"].keys())
-        self.assertTrue("Version" in bd.extcsv_ds["DATA_GENERATION$1"].keys())
+        self.assertTrue("CONTENT$1" in b.extcsv_ds.keys())
+        self.assertTrue("DATA_GENERATION$1" in b.extcsv_ds.keys())
+        self.assertTrue("PLATFORM$1" in b.extcsv_ds.keys())
+        self.assertTrue("INSTRUMENT$1" in b.extcsv_ds.keys())
+        self.assertTrue("LOCATION$1" in b.extcsv_ds.keys())
+        self.assertTrue("TIMESTAMP$1" in b.extcsv_ds.keys())
+        self.assertTrue("FLIGHT_SUMMARY$1" in b.extcsv_ds.keys())
+        self.assertTrue("AIXILLARY_DATA$1" in b.extcsv_ds.keys())
+        self.assertTrue("PROFILE$1" in b.extcsv_ds.keys())
+        self.assertTrue("Class" in b.extcsv_ds["CONTENT$1"].keys())
+        self.assertTrue("Category" in b.extcsv_ds["CONTENT$1"].keys())
+        self.assertTrue("Level" in b.extcsv_ds["CONTENT$1"].keys())
+        self.assertTrue("Form" in b.extcsv_ds["CONTENT$1"].keys())
+        self.assertTrue("Date" in b.extcsv_ds["DATA_GENERATION$1"].keys())
+        self.assertTrue("Agency" in b.extcsv_ds["DATA_GENERATION$1"].keys())
+        self.assertTrue("Version" in b.extcsv_ds["DATA_GENERATION$1"].keys())
         self.assertTrue("ScientificAuthority" in
-                        bd.extcsv_ds["DATA_GENERATION$1"].keys())
-        self.assertTrue("Type" in bd.extcsv_ds["PLATFORM$1"].keys())
-        self.assertTrue("ID" in bd.extcsv_ds["PLATFORM$1"].keys())
-        self.assertTrue("Name" in bd.extcsv_ds["PLATFORM$1"].keys())
-        self.assertTrue("Country" in bd.extcsv_ds["PLATFORM$1"].keys())
-        self.assertTrue("GAW_ID" in bd.extcsv_ds["PLATFORM$1"].keys())
-        self.assertTrue("Name" in bd.extcsv_ds["INSTRUMENT$1"].keys())
-        self.assertTrue("Model" in bd.extcsv_ds["INSTRUMENT$1"].keys())
-        self.assertTrue("Number" in bd.extcsv_ds["INSTRUMENT$1"].keys())
-        self.assertTrue("Latitude" in bd.extcsv_ds["LOCATION$1"].keys())
-        self.assertTrue("Longitude" in bd.extcsv_ds["LOCATION$1"].keys())
-        self.assertTrue("Height" in bd.extcsv_ds["LOCATION$1"].keys())
-        self.assertTrue("UTCOffset" in bd.extcsv_ds["TIMESTAMP$1"].keys())
-        self.assertTrue("Date" in bd.extcsv_ds["TIMESTAMP$1"].keys())
-        self.assertTrue("Time" in bd.extcsv_ds["TIMESTAMP$1"].keys())
+                        b.extcsv_ds["DATA_GENERATION$1"].keys())
+        self.assertTrue("Type" in b.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("ID" in b.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("Name" in b.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("Country" in b.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("GAW_ID" in b.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("Name" in b.extcsv_ds["INSTRUMENT$1"].keys())
+        self.assertTrue("Model" in b.extcsv_ds["INSTRUMENT$1"].keys())
+        self.assertTrue("Number" in b.extcsv_ds["INSTRUMENT$1"].keys())
+        self.assertTrue("Latitude" in b.extcsv_ds["LOCATION$1"].keys())
+        self.assertTrue("Longitude" in b.extcsv_ds["LOCATION$1"].keys())
+        self.assertTrue("Height" in b.extcsv_ds["LOCATION$1"].keys())
+        self.assertTrue("UTCOffset" in b.extcsv_ds["TIMESTAMP$1"].keys())
+        self.assertTrue("Date" in b.extcsv_ds["TIMESTAMP$1"].keys())
+        self.assertTrue("Time" in b.extcsv_ds["TIMESTAMP$1"].keys())
         self.assertTrue("IntegratedO3" in
-                        bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("CorrectionCode"in
-                        bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+                        b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+        self.assertTrue("CorrectionCode" in
+                        b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
         self.assertTrue("SondeTotalO3" in
-                        bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+                        b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
         self.assertTrue("CorrectionFactor" in
-                        bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("TotalO3" in bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("WLCode" in bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("ObsType" in bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("Instrument" in
-                        bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("Number" in bd.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("MeteoSonde" in
-                        bd.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("ib1" in bd.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("ib2" in bd.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("PumpRate" in bd.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+        self.assertTrue("TotalO3" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+        self.assertTrue("WLCode" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+        self.assertTrue("ObsType" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+        self.assertTrue("Instrument" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+        self.assertTrue("Number" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
+        self.assertTrue("MeteoSonde" in b.extcsv_ds["AIXILLARY_DATA$1"].keys())
+        self.assertTrue("ib1" in b.extcsv_ds["AIXILLARY_DATA$1"].keys())
+        self.assertTrue("ib2" in b.extcsv_ds["AIXILLARY_DATA$1"].keys())
+        self.assertTrue("PumpRate" in b.extcsv_ds["AIXILLARY_DATA$1"].keys())
         self.assertTrue("BackgroundCorr" in
-                        bd.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        b.extcsv_ds["AIXILLARY_DATA$1"].keys())
         self.assertTrue("SampleTemperatureType" in
-                        bd.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        b.extcsv_ds["AIXILLARY_DATA$1"].keys())
         self.assertTrue("MinutesGroundO3" in
-                        bd.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("Pressure" in bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("O3PartialPressure" in
-                        bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("Temperature" in bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("WindSpeed" in bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("WindDirection" in bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("LevelCode" in bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("Duration" in bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("GPHeight" in bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("RelativeHumidity" in bd.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("SampleTemperature" in
-                        bd.extcsv_ds["PROFILE$1"].keys())
+                        b.extcsv_ds["AIXILLARY_DATA$1"].keys())
+        self.assertTrue("Pressure" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("O3PartialPressure" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("Temperature" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("WindSpeed" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("WindDirection" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("LevelCode" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("Duration" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("GPHeight" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("RelativeHumidity" in b.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("SampleTemperature" in b.extcsv_ds["PROFILE$1"].keys())
 
-        self.assertEqual(bd.extcsv_ds["PROFILE$1"]["Pressure"][0],
-                         "823.12")
-        self.assertEqual(bd.extcsv_ds["PROFILE$1"]["Pressure"][1],
-                         "822.47")
-        self.assertEqual(bd.extcsv_ds["PROFILE$1"]["Pressure"][10],
-                         "815.19")
-        self.assertEqual(bd.extcsv_ds["PROFILE$1"]["O3PartialPressure"][10],
-                         "3.1742")
-        self.assertEqual(bd.extcsv_ds["PLATFORM$1"]["Type"],
-                         ["STN"])
-        self.assertEqual(bd.extcsv_ds["PLATFORM$1"]["Country"],
+        self.assertEqual(b.extcsv_ds["PROFILE$1"]["Pressure"][0],
+                         "820.26")
+        self.assertEqual(b.extcsv_ds["PROFILE$1"]["Pressure"][1],
+                         "820.05")
+        self.assertEqual(b.extcsv_ds["PROFILE$1"]["Pressure"][10],
+                         "816.04")
+        self.assertEqual(b.extcsv_ds["PROFILE$1"]["O3PartialPressure"][10],
+                         "4.8607")
+        self.assertEqual(b.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
+        self.assertEqual(b.extcsv_ds["PLATFORM$1"]["Country"],
                          ["United States"])
-        self.assertEqual(bd.extcsv_ds["DATA_GENERATION$1"]["Agency"],
+        self.assertEqual(b.extcsv_ds["DATA_GENERATION$1"]["Agency"],
                          ["NOAA-CMDL"])
 
 
