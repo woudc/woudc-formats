@@ -504,7 +504,7 @@ class Vaisala_converter(converter):
             elif 'Started at' in line:
                 metadata['date'] = line.split('    ')[1].strip()
             elif 'Location' in line:
-                metadata['location'] = line[line.index(':')+1:].strip()
+                metadata['location'] = line[line.index(':') + 1:].strip()
             elif 'Special sensor serial number' in line:
                 metadata['instrument'] = line.split(':')[1].strip()
             elif 'Integrated Ozone' in line:
@@ -520,7 +520,7 @@ class Vaisala_converter(converter):
             elif flag == 1:
                 min = line[0:4].strip()
                 seconds = line[4:7].strip()
-                time = str(int(min)*60 + int(seconds))
+                time = str(int(min) * 60 + int(seconds))
                 cur_line = []
                 counter = counter + 1
                 # Pick and choose required information for payload
