@@ -44,11 +44,11 @@ Required Arguments:
 
 Optional Arguments:
     --metadata: a dictionary formatted string containing some specified station metadation information
-            ex: {"station": "XXX", "agency": "XXX", "inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX", "country": "XXX"}
+            ex: {"station": "XXX", "agency": "XXX", "inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX", "country": "XXX", "GAW_ID": "XXX"}
 
 Importance:
     For AMES-2160 format, 'station' and 'agency' arguments in --metadata are required in order to process the file.
-    For Vaisala format, 'station', 'ID', 'agency', 'country', and 'SA' arguments in --metadata are required in order to process the file.
+    For Vaisala format, 'station', 'ID', 'GAW_ID', 'agency', 'country', and 'SA' arguments in --metadata are required in order to process the file.
 ```
 
 ### API
