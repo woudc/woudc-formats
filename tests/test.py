@@ -379,6 +379,63 @@ class Test(unittest.TestCase):
         self.assertEqual(b.extcsv_ds["DATA_GENERATION$1"]["Agency"],
                          ["NOAA-CMDL"])
 
+    def test_vaisala(self):
+        """
+        Vaisala Tests
+        """
+        Vaisala_filename = "tests/Ozono000121_14SEG_SKBO.txt"
+        Vai = load('Vaisala', Vaisala_filename, 
+                 {"station": "Vaisala", "agency": "Vaisala_Agency", "ID": "666", "SA": "Vaisala_SA", "country": "Vaisala_Country"})
+
+        self.assertTrue("CONTENT$1" in Vai.extcsv_ds.keys())
+        self.assertTrue("DATA_GENERATION$1" in Vai.extcsv_ds.keys())
+        self.assertTrue("PLATFORM$1" in Vai.extcsv_ds.keys())
+        self.assertTrue("INSTRUMENT$1" in Vai.extcsv_ds.keys())
+        self.assertTrue("LOCATION$1" in Vai.extcsv_ds.keys())
+        self.assertTrue("TIMESTAMP$1" in Vai.extcsv_ds.keys())
+        self.assertTrue("PROFILE$1" in Vai.extcsv_ds.keys())
+        self.assertTrue("Class" in Vai.extcsv_ds["CONTENT$1"].keys())
+        self.assertTrue("Category" in Vai.extcsv_ds["CONTENT$1"].keys())
+        self.assertTrue("Level" in Vai.extcsv_ds["CONTENT$1"].keys())
+        self.assertTrue("Form" in Vai.extcsv_ds["CONTENT$1"].keys())
+        self.assertTrue("Date" in Vai.extcsv_ds["DATA_GENERATION$1"].keys())
+        self.assertTrue("Agency" in Vai.extcsv_ds["DATA_GENERATION$1"].keys())
+        self.assertTrue("Version" in Vai.extcsv_ds["DATA_GENERATION$1"].keys())
+        self.assertTrue("ScientificAuthority" in
+                        Vai.extcsv_ds["DATA_GENERATION$1"].keys())
+        self.assertTrue("Type" in Vai.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("ID" in Vai.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("Name" in Vai.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("Country" in Vai.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("GAW_ID" in Vai.extcsv_ds["PLATFORM$1"].keys())
+        self.assertTrue("Name" in Vai.extcsv_ds["INSTRUMENT$1"].keys())
+        self.assertTrue("Model" in Vai.extcsv_ds["INSTRUMENT$1"].keys())
+        self.assertTrue("Number" in Vai.extcsv_ds["INSTRUMENT$1"].keys())
+        self.assertTrue("Latitude" in Vai.extcsv_ds["LOCATION$1"].keys())
+        self.assertTrue("Longitude" in Vai.extcsv_ds["LOCATION$1"].keys())
+        self.assertTrue("Height" in Vai.extcsv_ds["LOCATION$1"].keys())
+        self.assertTrue("UTCOffset" in Vai.extcsv_ds["TIMESTAMP$1"].keys())
+        self.assertTrue("Date" in Vai.extcsv_ds["TIMESTAMP$1"].keys())
+        self.assertTrue("Time" in Vai.extcsv_ds["TIMESTAMP$1"].keys())
+        self.assertTrue("Pressure" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("O3PartialPressure" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("Temperature" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("WindSpeed" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("WindDirection" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("LevelCode" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("Duration" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("GPHeight" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("RelativeHumidity" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("SampleTemperature" in Vai.extcsv_ds["PROFILE$1"].keys())
+
+        self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["Pressure"][0], "753.2")
+        self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["Pressure"][1], "747.3")
+        self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["Pressure"][10], "692.1")
+        self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["O3PartialPressure"][10], "2.12")
+        self.assertEqual(Vai.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
+        self.assertEqual(Vai.extcsv_ds["PLATFORM$1"]["Country"], ["Vaisala_Country"])
+        self.assertEqual(Vai.extcsv_ds["DATA_GENERATION$1"]["Agency"], ["Vaisala_Agency"])
+
 
 # main
 if __name__ == '__main__':
