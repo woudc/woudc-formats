@@ -83,7 +83,7 @@ class shadoz_converter(converter):
         # Place left for time and define logging
         """
         :parm file_content: opened file object for SHADOZ file.
-
+        :parm metadata_dic: user specified metadata information
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
         metadata_dict = {}
@@ -93,23 +93,30 @@ class shadoz_converter(converter):
         LOGGER.info('Parsing file, collecting data from file.')
         bad_value = ''
 
+        # Going through SHADOZ file line by line
         for lines in file_content:
             if lines == "":
                 continue
             if ":" in lines:
+                # Each line will be seperated by :, as header and value
                 number = lines.index(":")
                 key = lines[0:number].strip()
                 metadata_dict[key] = lines[number + 1:].strip()
                 self.ori.append(lines.strip('\n'))
+
+                # Variation of the line header
                 if ('SHADOZ Principal Investigator' in lines or
                    'Station Principal Investigator' in lines):
                     self.inv.append(lines.strip('\n'))
                 elif 'Missing or bad values' in lines:
                     bad_value = lines[number + 1:].strip()
+
+            # Locate payload starting line
             elif "sec     hPa         km       C         %" in lines:
                 flag = 1
                 continue
             elif flag == 1:
+                # Pick and Choose required data from payload
                 if "*" in lines[16:26].strip():
                     self.data_truple.insert(counter, [lines[6:16].strip(),
                                                       lines[46:56].strip(),
@@ -131,8 +138,11 @@ class shadoz_converter(converter):
                 counter = counter + 1
 
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
+
+        # Getting Information from Config file for CONTENT table
         try:
             LOGGER.info('Getting Content Table information from resource.cfg')
+            # station_info dictionary stores parsed data
             self.station_info["Content"] = [
                 util.get_config_value("SHADOZ", "CONTENT.Class"),
                 util.get_config_value("SHADOZ", "CONTENT.Category"),
@@ -143,6 +153,8 @@ class shadoz_converter(converter):
             msg = 'Unable to get Content Table information due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
 
+        # Change date format to meet WOUDC requirement
+        # Parsing data from SHADOZ to WOUDC format
         if "," in metadata_dict["SHADOZ format data created"]:
             re_data = metadata_dict["SHADOZ format data created"].replace(
                 ",", ".")
@@ -167,6 +179,7 @@ class shadoz_converter(converter):
             Agency = metadata_dic['agency']
         else:
             try:
+                # Get agency information from foncig
                 Agency = util.get_config_value(
                     "AGENCY", station)
             except Exception, err:
@@ -175,6 +188,7 @@ class shadoz_converter(converter):
                 pass
 
         try:
+            # Map Name from SHADOZ file to WOUDC databse's Name
             station = util.get_config_value(
                 "NAME CONVERTER",
                 metadata_dict["STATION"][0:number])
@@ -185,6 +199,7 @@ class shadoz_converter(converter):
         station = station.decode('UTF-8')
 
         try:
+            # Formating date information
             LOGGER.info('Getting Agency information from resource.cfg.')
             date_map = {'January': '01', 'February': '02', 'March': '03',
                         'April': '04', 'May': '05', 'June': '06', 'July': '07',
@@ -217,6 +232,7 @@ class shadoz_converter(converter):
                                          metadata_dict["Elevation (m)"]]
 
         try:
+            # Formatting Date
             temp_datetime = metadata_dict["Launch Date"]
             Year = temp_datetime[0:4]
             Month = temp_datetime[4:6]
@@ -274,12 +290,17 @@ class shadoz_converter(converter):
             msg = 'Unable to get metadata due to: %S' % str(err)
             LOGGER.error(msg)
 
+        # Collecting station metadata by using pywoudc
+        # Station name and agency name is required to find
+        # Station metadata from pywoudc
         header_list = ['type', 'ID', 'station', 'country', 'gaw_id']
         pywoudc_header_list = ['platform_type', 'platform_id', 'platform_name',
                                'country', 'gaw_id']
         temp_dict = {}
         for item in header_list:
             temp_dict[item] = ''
+            # Pre set an empty dictionary, if user passed in
+            # this specified information, insert into dictionary
             if item in metadata_dic.keys():
                 temp_dict[item] = metadata_dic[item]
 
@@ -289,8 +310,11 @@ class shadoz_converter(converter):
                 properties = row['properties']
                 if (station == properties['platform_name'] and
                    Agency == properties['acronym']):
+                    # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for item in header_list:
+                        # Insert data into dictionary only when this
+                        # field is empty
                         if temp_dict[item] == '':
                             temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
                     break
@@ -304,6 +328,7 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
 
         try:
+            # Processing Instrument information by using pywoudc
             LOGGER.info('Processing instrument metadata information.')
             inst_model = ''
             inst_number = ''
@@ -324,6 +349,8 @@ class shadoz_converter(converter):
                     inst_model = 'N/A'
                     inst_number = 'N/A'
                 else:
+                    # Try to parse instrument data collected from
+                    # SHADOZ file
                     if '-' in metadata_dict["Sonde Instrument, SN"]:
                         inst_model = 'N/A'
                         inst_number = metadata_dict["Sonde Instrument, SN"]
@@ -446,6 +473,280 @@ class shadoz_converter(converter):
         return ecsv
 
 
+class Vaisala_converter(converter):
+    """
+    Genric Vaisala format to WOUDC EXT-CSV format converter.
+    """
+
+    def __init__(self):
+        """
+        Create instance variables.
+        """
+        self.data_truple = []
+        self.station_info = {}
+
+    def parser(self, file_content, metadata_dic):
+        """
+        :parm file_content: opened file object for SHADOZ file.
+        :parm metadata_dic: user specified metadata informatiom
+        Agency, SA, ID, Station(Name), Country are required as input
+        Processing of data, collecting required information for WOUDC EXT-CSV.
+        """
+
+        metadata = {}
+        flag = 0
+        counter = 0
+
+        for line in file_content:
+            # Collecting information from Vaisala file
+            if line.strip() == '':
+                continue
+            elif 'Started at' in line:
+                metadata['date'] = line.split('    ')[1].strip()
+            elif 'Location' in line:
+                metadata['location'] = line[line.index(':') + 1:].strip()
+            elif 'Special sensor serial number' in line:
+                metadata['instrument'] = line.split(':')[1].strip()
+            elif 'Integrated Ozone' in line:
+                metadata['IntO3'] = line.split(':')[1].strip()
+            elif 'Residual Ozone' in line:
+                metadata['ResO3'] = line.split(':')[1].strip()
+            elif 'Time Pressure   Height  Temperature  RH    VirtT   DPD  LRate AscRate Ozone [mPa]' in line:  # noqa
+                header = [x.strip() for x in line.split(' ')]
+                header[len(header) - 2] = '%s%s' % (header[len(header) - 2], header[len(header) - 1])  # noqa
+                header.pop()
+            elif 'min  s      hPa      gpm     deg C      %       C     C    C/km     m/sOzone [mPa]' in line:  # noqa
+                flag = 1
+            elif flag == 1:
+                min = line[0:4].strip()
+                seconds = line[4:7].strip()
+                time = str(int(min) * 60 + int(seconds))
+                cur_line = []
+                counter = counter + 1
+                # Pick and choose required information for payload
+                cur_line = [line[11:18].strip(), line[76:80].strip(),
+                            line[31:37].strip(), '', '', '', time,
+                            line[20:27].strip(), line[40:44].strip(), '']
+                self.data_truple.insert(counter, cur_line)
+
+        LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
+        try:
+            LOGGER.info('Getting Content Table information from resource.cfg')
+            # station_info dictionary stores processed data
+            self.station_info["Content"] = [
+                util.get_config_value("VAISALA", "CONTENT.Class"),
+                util.get_config_value("VAISALA", "CONTENT.Category"),
+                util.get_config_value("VAISALA", "CONTENT.Level"),
+                util.get_config_value("VAISALA", "CONTENT.Form")
+            ]
+        except Exception, err:
+            msg = 'Unable to get Content Table information due to: %s' % str(err)  # noqa
+            LOGGER.error(msg)
+
+        try:
+            self.station_info["Data_Generation"] = [
+                datetime.datetime.utcnow().strftime('%Y-%m-%d'),
+                metadata_dic['agency'],
+                '1',
+                metadata_dic['SA']
+            ]
+        except Exception, err:
+            msg = 'Unable to get Data_Generation infomation due to: %s' % str(err)  # noqa
+            LOGGER.error(msg)
+
+        LOGGER.info('Processing platform information')
+        try:
+            Type = 'STN'
+            ID = metadata_dic['ID']
+            Name = metadata_dic['station']
+            Country = metadata_dic['country']
+            GAW_ID = ''
+            if "GAW_ID" in metadata_dic:
+                GAW_ID = metadata_dic['GAW_ID']
+            self.station_info['Platform'] = [
+                Type, ID, Name, Country, GAW_ID
+            ]
+        except Exception, err:
+            msg = 'Unable to process platform infomation due to: %s' % str(err)
+            LOGGER.error(msg)
+
+        LOGGER.info('Processing Instrument information')
+        try:
+            # Parsing instrument information collected from
+            # Vaisala file
+            inst_model = ''
+            inst_number = ''
+            if 'inst model' in metadata_dic:
+                inst_model = metadata_dic['inst model']
+            if 'inst number' in metadata_dic:
+                inst_number = metadata_dic['inst number']
+
+            if inst_model == '' and inst_number == '':
+                if 'z' == metadata["instrument"][0:1].lower():  # noqa
+                    inst_model = metadata["instrument"][0:1]  # noqa
+                    inst_number = metadata["instrument"][1:]  # noqa
+                elif re.search('[a-zA-Z]', metadata["instrument"][0:2]):  # noqa:
+                    inst_model = metadata["instrument"][0:2]
+                    inst_number = metadata["instrument"][2:]
+                else:
+                    inst_model = 'N/A'
+                    inst_number = 'N/A'
+            self.station_info['Instrument'] = [
+                'ECC',
+                inst_model,
+                inst_number
+            ]
+        except Exception, err:
+            msg = 'Unable to get Instrument information due to: %s' % str(err)
+            LOGGER.error(msg)
+
+        LOGGER.info('Processing Location Information')
+        try:
+            Lat = 'N/A'
+            Lon = 'N/A'
+            Evl = 'N/A'
+            # Parsing location information Collected
+            # from vaisala file
+            location_info_list_tmp = metadata['location'].split(' ')
+            loc_info_list = []
+            for item in location_info_list_tmp:
+                if item != '':
+                    loc_info_list.append(item)
+            if 'N' == loc_info_list[1]:
+                Lat = loc_info_list[0]
+            elif 'S' == loc_info_list[1]:
+                Lat = '-%s' % loc_info_list[0]
+            if 'E' == loc_info_list[3]:
+                Lon = loc_info_list[2]
+            elif 'W' == loc_info_list[3]:
+                Lon = '-%s' % loc_info_list[2]
+            Evl = loc_info_list[4]
+            self.station_info['Location'] = [
+                Lat,
+                Lon,
+                Evl
+            ]
+        except Exception, err:
+            msg = 'Unable to get Location information due to: %s' % str(err)
+            LOGGER.error(msg)
+
+        LOGGER.info('Processing Timestamp information')
+        try:
+            UTCOffset = '+00:00:00'
+            date_tok = metadata['date'].split(' ')
+            day = date_tok[0]
+            month = date_tok[1]
+            # Formatting date
+            date_map = {'January': '01', 'February': '02', 'March': '03',
+                        'April': '04', 'May': '05', 'June': '06', 'July': '07',
+                        'August': '08', 'September': '09', 'October': '10',
+                        'November': '11', 'December': '12'}
+            if month in date_map:
+                month = date_map[month]
+            year = date_tok[2]
+            time = date_tok[3]
+            if len(time.split(':')) == 2:
+                time = '%s:00' % time
+            self.station_info['Timestamp'] = [
+                UTCOffset,
+                '%s/%s/%s' % (day, month, year),
+                time
+            ]
+        except Exception, err:
+            msg = 'Unable to get Timestamp information due to: %s' % str(err)
+            LOGGER.error(msg)
+
+        LOGGER.info('Processing Flight_Summary information')
+        try:
+            # Calculating TotalOzone Value
+            # TotalOzone = IntegratedO3 + ResidualO3
+            IntO3 = ''
+            ResO3 = ''
+            TotO3 = ''
+            if 'IntO3' in metadata:
+                IntO3 = metadata['IntO3']
+            if 'ResO3' in metadata:
+                ResO3 = metadata['ResO3']
+            TotO3 = str(float(IntO3) + float(ResO3))
+            self.station_info['Flight_Summary'] = [
+                IntO3, '0', TotO3, '', '', '', '', '', ''
+            ]
+        except Exception, err:
+            msg = 'Unable to get Flight_Summary information due to: %s' % str(err)  # noqa
+            LOGGER.error(msg)
+
+    def creater(self, filename):
+        """
+        :return ecsv: ext-csv object that is ready to be dumped out
+
+        Creating ext-csv tables and insert table values
+        """
+        try:
+            LOGGER.info('Creating woudc extcsv template.')
+            ecsv = woudc_extcsv.Writer(template=True)
+        except Exception, err:
+            msg = 'Unable to create woudc extcsv template due to: %s' % str(err)  # noqa
+            LOGGER.error(msg)
+
+        try:
+            LOGGER.info('Adding header/Comments.')
+            ecsv.add_comment('These data were originally received by the WOUDC in Vaisala file format and')  # noqa
+            ecsv.add_comment('have been translated into extCSV file format for WOUDC archiving.')  # noqa
+            ecsv.add_comment('This translation process re-formats these data into comply with WOUDC standards.')  # noqa
+            ecsv.add_comment('')
+            ecsv.add_comment('Source File: %s' % filename)
+            ecsv.add_comment('')
+
+        except Exception, err:
+            msg = 'Unable to add header due to: %s' % str(err)
+            LOGGER.error(msg)
+
+        LOGGER.info('Adding Content Table.')
+        ecsv.add_data("CONTENT",
+                      ",".join(self.station_info["Content"]))
+
+        LOGGER.info('Adding Data_generation Table.')
+        ecsv.add_data("DATA_GENERATION",
+                      ",".join(self.station_info["Data_Generation"]))
+
+        ecsv.add_data("PLATFORM",
+                      ",".join(self.station_info["Platform"]))
+
+        LOGGER.info('Adding Instrument Table.')
+        ecsv.add_data("INSTRUMENT",
+                      ",".join(self.station_info["Instrument"]))
+
+        LOGGER.info('Adding Location Table.')
+        ecsv.add_data("LOCATION",
+                      ",".join(self.station_info["Location"]))
+
+        LOGGER.info('Adding Timestamp Table.')
+        ecsv.add_data("TIMESTAMP",
+                      ",".join(self.station_info["Timestamp"]))
+
+        LOGGER.info('Adding Flight_Summary Table.')
+        ecsv.add_data("FLIGHT_SUMMARY",
+                      ",".join(self.station_info["Flight_Summary"]),
+                      field="IntegratedO3,CorrectionCode,"
+                      "SondeTotalO3,CorrectionFactor,TotalO3,"
+                      "WLCode,ObsType,Instrument,Number")
+
+        LOGGER.info('Adding Profile Table(Payload).')
+        ecsv.add_data("PROFILE",
+                      ",".join(self.data_truple[0]),
+                      field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
+                      "WindDirection,LevelCode,Duration,GPHeight,"
+                      "RelativeHumidity,SampleTemperature")
+        x = 1
+        LOGGER.info('Insert payload value to Profile Table.')
+        while x < len(self.data_truple) - 1:
+
+            ecsv.add_data("PROFILE",
+                          ",".join(self.data_truple[x]))
+            x = x + 1
+        return ecsv
+
+
 class BAS_converter(converter):
 
     def __init__(self):
@@ -463,7 +764,7 @@ class BAS_converter(converter):
         """
         flag = 0
         counter = 0
-
+        # Collecting data from BAS file
         for line in file_content:
             if line == "":
                 continue
@@ -494,6 +795,7 @@ class BAS_converter(converter):
                 flag = 1
                 continue
 
+            # Collecting payload data
             if flag == 1:
                 self.data_truple.insert(counter, [line[:4].strip(),
                                                   line[4:7].strip(),
@@ -513,7 +815,7 @@ class BAS_converter(converter):
             util.get_config_value(station, 'agency_name'), "1.0",
             util.get_config_value(station, 'sci_auth')
         ]
-
+        # Get all these value from config
         self.station_info["Platform"] = [util.get_config_value(station,
                                          'platform_type'),
                                          util.get_config_value(station,
@@ -608,135 +910,215 @@ class AMES_2160_converter(converter):
         """
         :parm file_content: opened file object for AMES file.
         :parm metadata_dict: dictionary stores user inputed station metadata
-
+        Station name and Agency name is required in order to process AMES file
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
         client = WoudcClient()
         counter = 0
         flag = False
-        sta_map_key = ['ALERT NWT', 'ANDOYA', 'DUMONT D\'URVOZONE', 'EUREKA',
-                       'FARADAY', 'HILO', 'HOHENPEISSENOZONE', 'IZANA',
-                       'LAUDER', 'LEGIONOWO', 'NATAL', 'NEUMAYER',
-                       'NY-ALESUND', 'OHP', 'PARAMARIBO', 'PAYERNE',
-                       'PRAHA', 'REUNION ISL', 'SCORESBYSUNDOZONE', 'THULE',
-                       'TORONTO', 'TSUKUBA', 'UCCLE', 'YAKUTSK']
-        date_map = {'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04',
-                    'MAY': '05', 'JUN': '06', 'JUL': '07', 'AUG': '08',
-                    'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'}
-        date_map_key = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-                        'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
         LOGGER.info('Parsing AMES-2160 file.')
         LOGGER.info('Collecting header inforamtion')
         flag_first = 0
+        time = 'UNKNOWN'
+        flag = False
+        date_tok = []
         for line in file_content:
-            format_type = None
             counter += 1
+            # Collecting information line by line
             if counter == 1:
+                # Two situation:
+                #      1. first line contains 2160
+                #      2. ndacc AMES-2160, contains a header line for the file
+                # Only AMES from ndacc with header contains time
+                # information(hh:mm:ss)
                 if '2160' in line:
-                    flag_first = 1
-                    flag = True
                     station_name = metadata_dict['station']
+                    flag = True
                     continue
                 else:
-                    if 'station' in metadata_dict:
-                        station_name = metadata_dict['station']
-                    else:
-                        for item in sta_map_key:
-                            if item in line:
-                                station_name = util.get_config_value("AMES",
-                                                                     item)
-                                break
-                    tok = line.split()
-                    idex = line.index('   ')
-                    if 'SA' in metadata_dict:
-                        PI = metadata_dict['SA']
-                    else:
-                        PI = line[0:idex].strip()
-                    date = tok[len(tok) - 3]
-                    for item in date_map_key:
-                        if item in date:
-                            new_date = date.replace(item, date_map[item])
-                            break
-                    date = new_date
-                    date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
-                    time = tok[len(tok) - 2][:8]
-            if counter == 2:
-                if flag_first == 0:
-                    tok = line.split()
-                    format_type = tok[1].strip()
-                    if format_type == '2160':
-                        flag = True
+                    if flag_first == 1:
+                        raise Exception('Unsupported AMES file')
+                    counter = 0
+                    flag_first = 1
+                    tok = line.split('   ')
+                    time = tok[-1].strip().split(' ')[1]
+                    time = time[0:8]
+                    continue
+            elif counter == 2:
+                # Second line of AMES is SA, need to reformat it to WOUDC
+                # Standard
+                if 'SA' in metadata_dict:
+                    PI = metadata_dict['SA'].upper().strip()
                 else:
-                    if 'SA' in metadata_dict:
-                        PI = metadata_dict['SA'].upper().strip()
+                    if ',' in line:
+                        First_Name = line.split(',')[0].strip()
+                        Last_Name = line.split(',')[1].strip()[0]
+                        PI = '%s %s.' % (First_Name, Last_Name)
                     else:
-                        if ',' in line:
-                            indx = line.index(',')
-                            PI = (line[0:indx + 3].replace(
-                                ',', '') + '.').upper().strip()
-                        else:
-                            PI = line.upper().strip() + '.'
+                        PI = line.strip()
+            elif counter == 3:
+                # Third line is the agency name, usually is different
+                # from the name in WOUDC database, it is perfered
+                # for user to pass in agency name
+                if 'agency' in metadata_dict:
+                    Agency = metadata_dict['agency']
+                else:
+                    Agency = 'UNKNOWN'
             if counter == 5:
-                if flag_first == 1:
-                    self.mname = line
-            if counter == 6:
-                if flag_first == 0:
-                    self.mname = line
+                # line 5 is program name
+                self.mname = line
             if counter == 7:
-                if flag_first == 1:
-                    indx = line.index('   ')
-                    date = line[0:indx]
-                    date_tok = date.split()
-                    if int(date_tok[1]) < 10:
-                        date_tok[1] = "0%s" % (date_tok[1])
-                    date = "%s-%s-%s" % (date_tok[0], date_tok[1], date_tok[2])
-                    time = ''
-                    date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
+                # Parsing date information
+                # First date information is data collection date
+                # Second date is data generation date
+                date_tok_temp = line.split(' ')
+                for item in date_tok_temp:
+                    item = item.strip()
+                    if item != '' and item != ' ':
+                        date_tok.append(item)
+                RDATE = '%s-%s-%s' % (date_tok[3], date_tok[4], date_tok[5])
+                RDATE = RDATE.strip()
+                DATE = '%s-%s-%s' % (date_tok[0], date_tok[1], date_tok[2])
+                DATE = DATE.strip()
                 break
 
+        if flag_first == 1:
+            counter += 1
         if flag:
-            element_mapping = dict({'Pressure at observation': 'Pressure',
-                                    'Ozone partial pressure': 'O3PartialPressure',  # noqa
-                                    'Temperature': 'Temperature',
-                                    'Horizontal wind direction': 'WindDirection',  # noqa
-                                    'Time after launch': 'Duration',
-                                    'Geopotential height': 'GPHeight',
-                                    'Relative humidity': 'RelativeHumidity',
-                                    'Temperature inside styrofoam box': 'SampleTemperature',  # noqa
-                                    'Horizontal wind speed': 'WindSpeed'})
+            element_mapping = {'Pressure': 'Pressure',
+                               'Pressure at observation': 'Pressure',
+                               'Ozone partial pressure': 'O3PartialPressure',
+                               'Temperature': 'Temperature',
+                               'Horizontal wind direction': 'WindDirection',
+                               'Time after launch': 'Duration',
+                               'Geopotential height': 'GPHeight',
+                               'Relative humidity': 'RelativeHumidity',
+                               'Internal temperature': 'SampleTemperature',
+                               'Horizontal wind speed': 'WindSpeed'}
             element_list = element_mapping.keys()
             element_index_dict = {}
-            line_num = 0
             prev_tok_count = 0
             pote_payload_line_num = 0
             pote_payload_counter = 0
             element_index = 0
+            level_counter = 0
+            ib1_index = None  # flag: find ib1 or not
+            ib2_index = None  # flag: find ib2 or not
+            inst_index = None  # flag: find instrument information or not
+            height_reached = False  # flag: find station elvation or not
+            level_data = []
             inst_raw = None
-            pressure_reached = False
-            payload_element_done = False
+            level_reached = False  # flag: metadata header reached or not
+            level_data_reached = False  # flag: metadata value readed or not
+            pressure_reached = False  # flag: payload header reached or not
+            payload_element_done = False  # flag: reached end payload header
             ecc_inst_reached = False
+            # flag: Does file in specific format that
+            # instrument info followed by a ECC line
             LOGGER.info('Checking observation condition.')
             for line in file_content:
+                # Some AMES file use () rather than [], change it
+                line = line.replace('(', '[')
+                line = line.replace(')', ']')
                 counter += 1
-                if 'Pressure at observation' in line:
+                if ('Time after launch' in line or
+                   'Pressure at observation' in line):
+                    # Flagging payload header reached
                     pressure_reached = True
-                if pressure_reached and len(line.strip()) in [2, 3, 4, 5] and len(re.findall('[\d]+', line)) != 0:  # noqa
+                if pressure_reached and 'zzzzz' in line:
+                    # flagging payload header ended
                     payload_element_done = True
-                if '(' in line and pressure_reached and not payload_element_done:  # noqa
+                if ('[' in line and pressure_reached and
+                        not payload_element_done):
                     # potential payload element
-                    test_str = (line[:line.index('(')]).strip()
+                    test_str = (line[:line.index('[')]).strip()
                     if test_str in element_list:
                         element_index_dict[element_mapping[test_str]] = element_index  # noqa
                         element_mapping.pop(test_str)
                     element_index += 1
-                if 'Serial number of ECC' in line:
+                if ecc_inst_reached:
+                    # ecc_inst_reached reached, next line is
+                    # instrument information
+                    inst_raw = line.strip()
+                    ecc_inst_reached = False
+                if line.strip() == 'ECC':
+                    # specific format where 'ECC' followed by instrument info
                     ecc_inst_reached = True
-                if ecc_inst_reached and inst_raw is None:
-                    inst_raw_list = re.findall('[0-9][A-Za-z][\s]*[0-9]*', line)  # noqa
-                    if len(inst_raw_list) != 0:
-                        inst_raw = line
-                if len(re.findall('[A-Za-z]+', line)) == 0:
+                if 'Number of levels' in line:
+                    # metadata header section reached
+                    level_reached = True
+                if level_reached:
+                    level_counter += 1
+                    # Collecting metadata header, and index for specific header
+                    if 'Ozone background after exposure to ozone in laboratory Ib1' in line:  # noqa
+                        ib1_index = level_counter - 1
+                    if 'Ozone background on filter just prior to launch Ib2' in line:  # noqa
+                        ib2_index = level_counter - 1
+                    if ('longitude' in line) or ('Longitude' in line):
+                        long_index = level_counter - 1
+                    if ('latitude' in line) or ('Latitude' in line):
+                        lat_index = level_counter - 1
+                    if 'Station height' in line:
+                        height_index = level_counter - 1
+                        height_reached = True
+                    if 'Serial number of ECC' in line:
+                        inst_index = level_counter - 1
+                    if len(re.findall('[A-Za-z]+', line)) == 0:
+                        # Metadata value line only contains number
+                        # Potential metadata value
+                        if not level_data_reached:
+                            if line == '':
+                                level_counter -= 1
+                                continue
+                            line_tok = line.split(' ')
+                            if len(line_tok) > 8:
+                                # Metadata value found
+                                level_data_reached = True
+                                data_block_size = level_counter - 1
+                    if level_data_reached:
+                        # Collecting metadata value into list
+                        if (len(level_data) < data_block_size and
+                           line[0] != ' '):
+                            if len(re.findall('[A-Za-z]+', line)) > 0:
+                                # metadata value line with letter is
+                                # corresponde to one header
+                                level_data.append(line.strip())
+                                continue
+                            line_tok = line.split(' ')
+                            # metadata value line with only number cooresponde
+                            # to multiple header, each value seperated by space
+                            for item in line_tok:
+                                item = item.strip()
+                                if item != ' ' and item != '':
+                                    level_data.append(item)
+                        else:
+                            # only payload information starts with space,
+                            # if space found, payload line reached
+                            level_data_reached = False
+                            level_reached = False
+                            # Parse collected metadata, if found
+                            if ib1_index is not None:
+                                ib1 = level_data[ib1_index]
+                            else:
+                                ib1 = ''
+                            if ib2_index is not None:
+                                ib2 = level_data[ib2_index]
+                            else:
+                                ib2 = ''
+                            if inst_index is not None:
+                                inst_raw = level_data[inst_index]
+                            Long = level_data[long_index]
+                            Lat = level_data[lat_index]
+                            if not height_reached:
+                                Height = 'UNKNOWN'
+                            else:
+                                Height = level_data[height_index]
+
+                if (not level_reached and
+                   len(re.findall('[A-Za-z]+', line)) == 0):
                     # potential payload line
+                    # Walk through this block of statement to find out
+                    # what logic is used to identify payload line
                     line_tok = line.split()
                     if len(line_tok) >= 8:
                         if prev_tok_count == 0:
@@ -749,6 +1131,7 @@ class AMES_2160_converter(converter):
                             else:
                                 prev_tok_count = len(line_tok)
                         if pote_payload_line_num == 0:
+                            # found starting payload line
                             pote_payload_line_num = counter
                         pote_payload_counter += 1
                         if pote_payload_counter == 10:
@@ -761,6 +1144,7 @@ class AMES_2160_converter(converter):
                     prev_tok_count = 0
                     pote_payload_line_num = 0
                     pote_payload_counter = 0
+
         try:
             LOGGER.info('Getting content table information from resource.cfg')
             self.station_info["Content"] = [util.get_config_value("NDACC", "CONTENT.Class"),  # noqa
@@ -771,11 +1155,12 @@ class AMES_2160_converter(converter):
         except Exception, err:
             msg = 'Unable to get content table information due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
-        Agency = 'na'
+
         ScientificAuthority = PI
-        if 'agency' in metadata_dict:
-            Agency = metadata_dict['agency'].strip()
-        else:
+
+        if Agency == 'UNKNOWN':
+            # if Agency is not passed in by user, and not found in AMES,
+            # looks for agency based on SA name, might return None
             try:
                 LOGGER.info('Looking for Agency in PI list.')
                 Agency = util.get_NDACC_agency(ScientificAuthority).strip()
@@ -791,16 +1176,22 @@ class AMES_2160_converter(converter):
             LOGGER.error(msg)
 
         try:
+            # processing station metadata from pywoudc, there might be
+            # multiple record found for one station under different agency.
+            # Therefore, Agency is required to process station metadata
+            # Any variable or code relate to geometry is used to access
+            # Geometry information returned by pywoudc, not used anymore,
+            # but can be de-commentted to make it work
             properties_list = []
-            geometry_list = []
+            # geometry_list = []
             counter = 0
             LOGGER.info('Parsing station metadata.')
             for row in station_metadata['features']:
                 properties = row['properties']
-                geometry = row['geometry']['coordinates']
+                # geometry = row['geometry']['coordinates']
                 if station_name.lower() == properties['platform_name'].lower():
                     properties_list.append(properties)
-                    geometry_list.append(geometry)
+                    # geometry_list.append(geometry)
                     counter = counter + 1
             if counter == 0:
                 LOGGER.warning('Unable to find stationi: %s, start lookup process.') % station_name  # noqa
@@ -809,7 +1200,7 @@ class AMES_2160_converter(converter):
                     Type = 'unknown'
                     Country = 'unknown'
                     GAW = 'unknown'
-                    Lat, Long = util.get_NDACC_station(station_name)
+                    # Lat, Long = util.get_NDACC_station(station_name)
                 except Exception, err:
                     msg = 'Unable to find the station in lookup due to: %s' % str(err)  # noqa
                     LOGGER.error(msg)
@@ -818,8 +1209,8 @@ class AMES_2160_converter(converter):
                 Type = properties_list[0]['platform_type']
                 Country = properties_list[0]['country']
                 GAW = properties_list[0]['gaw_id']
-                Lat = str(geometry_list[0][1])
-                Long = str(geometry_list[0][0])
+                # Lat = str(geometry_list[0][1])
+                # Long = str(geometry_list[0][0])
             else:
                 length = 0
                 for item in properties_list:
@@ -828,8 +1219,8 @@ class AMES_2160_converter(converter):
                         Type = item['platform_type']
                         Country = item['country']
                         GAW = item['gaw_id']
-                        Lat = str(geometry_list[length][1])
-                        Long = str(geometry_list[length][0])
+                        # Lat = str(geometry_list[length][1])
+                        # Long = str(geometry_list[length][0])
                     length = length + 1
 
             self.station_info['Platform'] = [Type, ID, station_name,
@@ -843,7 +1234,7 @@ class AMES_2160_converter(converter):
         else:
             Version = '1.0'
 
-        self.station_info['Data_Generation'] = [date_generated, Agency,
+        self.station_info['Data_Generation'] = [RDATE, Agency,
                                                 Version, ScientificAuthority]
 
         Model = 'na'
@@ -856,22 +1247,25 @@ class AMES_2160_converter(converter):
             Number = metadata_dict['inst number'].strip()
         else:
             LOGGER.info('Collecting instrument information.')
-            if inst_raw is not None and ecc_inst_reached:
+            if inst_raw is not None:
                 Model = inst_raw[:2].strip()
                 Number = inst_raw.strip()
 
         self.station_info['Instrument'] = [Name, Model, Number]
 
-        self.station_info['TimeStamp'] = ['+00:00:00', date, time]
+        self.station_info['TimeStamp'] = ['+00:00:00', DATE, time]
 
-        self.station_info['Location'] = [Lat, Long, 'na']
+        self.station_info['Location'] = [Lat, Long, Height]
 
-        self.station_info['Auxillary_Data'] = [' ', ' ', ' ', ' ', ' ', ' ',
-                                               ' ']
+        self.station_info['Auxillary_Data'] = ['', ib1, ib2, '', '', '', '']
 
-        self.station_info['Flight_Summary'] = [' ', ' ', ' ', ' ',
-                                               ' ', ' ', ' ', ' ', ' ']
+        self.station_info['Flight_Summary'] = ['', '', '', '', '', '',
+                                               '', '', '']
 
+        # Pick and choose payload data
+        # if user using loads method, file_content is a list,
+        # there is a special logic to threat it if it is a list
+        # (define line_num to 7)
         line_num = 7
         LOGGER.info('Collecting payload data.')
         if pote_payload_line_num != 0:
@@ -992,365 +1386,6 @@ class AMES_2160_converter(converter):
         return ecsv
 
 
-class AMES_2160_Boulder_converter(converter):
-    """
-    Class that is build to convert AMES-2160 data format from
-    Station: Boulder.
-    """
-
-    def __init__(self):
-        """
-        Create instance variables.
-        """
-        self.data_truple = []
-        self.station_info = {}
-        self.mname = ''
-
-    def parser(self, file_content, metadata_dict):
-        """
-        :parm file_content: opened file object for AMES file.
-        :parm metadata_dict: dictionary stores user inputed station metadata
-
-        Processing of data, collecting required information for WOUDC EXT-CSV.
-        """
-        client = WoudcClient()
-        counter = 0
-        flag = False
-        if 'raw_file' in metadata_dict:
-            raw_filename = metadata_dict['raw_file']
-            self.station_info['raw_file'] = raw_filename
-        LOGGER.info('Parsing AMES-2160 file.')
-        LOGGER.info('Collecting header inforamtion')
-        date_map = {'JAN': '01', 'FEB': '02', 'MAR': '03', 'APR': '04',
-                    'MAY': '05', 'JUN': '06', 'JUL': '07', 'AUG': '08',
-                    'SEP': '09', 'OCT': '10', 'NOV': '11', 'DEC': '12'}
-        date_map_key = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL',
-                        'AUG', 'SEP', 'OCT', 'NOV', 'DEC']
-        for line in file_content:
-            format_type = None
-            counter += 1
-            if counter == 1:
-                station_name = 'Boulder ESRL HQ (CO)'
-                tok = line.split()
-                idex = line.index('   ')
-                PI = line[0:idex].strip()
-                date = tok[len(tok) - 3]
-                for item in date_map_key:
-                    if item in date:
-                        new_date = date.replace(item, date_map[item])
-                        break
-                day = new_date[0:2]
-                month = (new_date[new_date.index('-') +
-                         1:new_date.index('-') + 3])
-                year = new_date[len(new_date) - 4:len(new_date)]
-                date = '%s-%s-%s' % (year, month, day)
-                date_generated = datetime.datetime.utcnow().strftime('%Y-%m-%d')  # noqa
-                time = tok[len(tok) - 2][:8]
-            if counter == 2:
-                tok = line.split()
-                format_type = tok[1].strip()
-                if format_type == '2160':
-                    flag = True
-            if counter == 6:
-                self.mname = line
-                break
-
-        if flag:
-            element_mapping = {'Pressure': 'Pressure',
-                               'Ozone partial pressure': 'O3PartialPressure',
-                               'Temperature': 'Temperature',
-                               'Horizontal wind direction': 'WindDirection',
-                               'Time after launch': 'Duration',
-                               'Geopotential height': 'GPHeight',
-                               'Relative humidity': 'RelativeHumidity',
-                               'Internal temperature': 'SampleTemperature',
-                               'Horizontal wind speed': 'WindSpeed'}
-            element_list = element_mapping.keys()
-            element_index_dict = {}
-            line_num = 0
-            prev_tok_count = 0
-            pote_payload_line_num = 0
-            pote_payload_counter = 0
-            element_index = 0
-            inst_raw = None
-            pressure_reached = False
-            payload_element_done = False
-            ecc_inst_reached = False
-            LOGGER.info('Checking observation condition.')
-            for line in file_content:
-                counter += 1
-                if 'Time after launch' in line:
-                    pressure_reached = True
-                if pressure_reached and 'zzzzz' in line:
-                    payload_element_done = True
-                if ('[' in line and pressure_reached and
-                        not payload_element_done):
-                    # potential payload element
-                    test_str = (line[:line.index('[')]).strip()
-                    if test_str in element_list:
-                        element_index_dict[element_mapping[test_str]] = element_index  # noqa
-                        element_mapping.pop(test_str)
-                    element_index += 1
-                if ecc_inst_reached:
-                    inst_raw = line.strip()
-                    ecc_inst_reached = False
-                if line.strip() == 'ECC':
-                    ecc_inst_reached = True
-                if len(re.findall('[A-Za-z]+', line)) == 0:
-                    # potential payload line
-                    line_tok = line.split()
-                    if len(line_tok) >= 8:
-                        if prev_tok_count == 0:
-                            prev_tok_count = len(line_tok)
-                        if prev_tok_count != 0:
-                            if prev_tok_count != len(line_tok):
-                                prev_tok_count = 0
-                                pote_payload_line_num = 0
-                                pote_payload_counter = 0
-                            else:
-                                prev_tok_count = len(line_tok)
-                        if pote_payload_line_num == 0:
-                            pote_payload_line_num = counter
-                        pote_payload_counter += 1
-                        if pote_payload_counter == 10:
-                            break
-                    else:
-                        prev_tok_count = 0
-                        pote_payload_line_num = 0
-                        pote_payload_counter = 0
-                else:
-                    prev_tok_count = 0
-                    pote_payload_line_num = 0
-                    pote_payload_counter = 0
-        try:
-            LOGGER.info('Getting content table information from resource.cfg')
-            self.station_info["Content"] = [
-                util.get_config_value("NDACC", "CONTENT.Class"),
-                util.get_config_value("NDACC", "CONTENT.Category"),
-                util.get_config_value("NDACC", "CONTENT.Level"),
-                util.get_config_value("NDACC", "CONTENT.Form")
-            ]
-
-        except Exception, err:
-            msg = 'Unable to get content table information due to: %s' % str(err)  # noqa
-            LOGGER.error(msg)
-        Agency = 'na'
-        ScientificAuthority = PI
-        try:
-            LOGGER.info('Looking for Agency in PI list.')
-            Agency = util.get_NDACC_agency(ScientificAuthority)
-        except Exception, err:
-            msg = 'Unable to find agency due to: %s' % str(err)
-            LOGGER.error(msg)
-
-        if Agency.strip() == 'ESRL/GMD':
-            Agency = 'NOAA-CMDL'
-
-        try:
-            LOGGER.info('Getting station metadata from pywoudc.')
-            station_metadata = client.get_station_metadata(raw=False)
-        except Exception, err:
-            msg = 'Unable to get station metadata from pywoudc due to: %s' % str(err)  # noqa
-            LOGGER.error(msg)
-
-        try:
-            properties_list = []
-            geometry_list = []
-            counter = 0
-            LOGGER.info('Parsing station metadata.')
-            for row in station_metadata['features']:
-                properties = row['properties']
-                geometry = row['geometry']['coordinates']
-                if station_name.lower() == properties['platform_name'].lower():
-                    properties_list.append(properties)
-                    geometry_list.append(geometry)
-                    counter = counter + 1
-            if counter == 0:
-                LOGGER.warning('Unable to find station: %s, start lookup process.') % station_name  # noqa
-                try:
-                    ID = 'na'
-                    Type = 'unknown'
-                    Country = 'unknown'
-                    GAW = 'unknown'
-                    Lat, Long = util.get_NDACC_station(station_name)
-                except Exception, err:
-                    msg = 'Unable to find the station in lookup due to: %s' % str(err)  # noqa
-                    LOGGER.error(msg)
-            elif counter == 1:
-                ID = properties_list[0]['platform_id']
-                Type = properties_list[0]['platform_type']
-                Country = properties_list[0]['country']
-                GAW = properties_list[0]['gaw_id']
-                Lat = str(geometry_list[0][0])
-                Long = str(geometry_list[0][1])
-            else:
-                length = 0
-                for item in properties_list:
-                    if item['acronym'].strip() == Agency.strip():
-                        ID = item['platform_id']
-                        Type = item['platform_type']
-                        Country = item['country']
-                        GAW = item['gaw_id']
-                        Lat = str(geometry_list[length][1])
-                        Long = str(geometry_list[length][0])
-                    length = length + 1
-
-            self.station_info['Platform'] = [Type, ID, station_name,
-                                             Country, GAW]
-        except Exception, err:
-            msg = 'Unable to process station metadata due to: %s' % str(err)
-            LOGGER.error(msg)
-
-        if 'version' in metadata_dict:
-            Version = metadata_dict['version']
-        else:
-            Version = '1.0'
-        self.station_info['Data_Generation'] = [date_generated, Agency,
-                                                Version, ScientificAuthority]
-
-        Model = 'na'
-        Name = 'ECC'
-        Number = 'na'
-
-        LOGGER.info('Collecting instrument information.')
-
-        if inst_raw is not None:
-            Model = inst_raw[:2].strip()
-            Number = inst_raw.strip()
-
-        self.station_info['Instrument'] = [Name, Model, Number]
-
-        self.station_info['TimeStamp'] = ['+00:00:00', date, time]
-
-        self.station_info['Location'] = [Lat, Long, 'na']
-
-        self.station_info['Auxillary_Data'] = [' ', ' ', ' ', ' ', ' ', ' ',
-                                               ' ']
-
-        self.station_info['Flight_Summary'] = [' ', ' ', ' ', ' ', ' ',
-                                               ' ', ' ', ' ', ' ']
-
-        line_num = 6
-        LOGGER.info('Collecting payload data.')
-
-        if pote_payload_line_num != 0:
-            if type(file_content) is not list:
-                file_content.seek(0, 0)
-                line_num = 0
-            for line in file_content:
-                if line == "":
-                    continue
-                line_num += 1
-                temp_data = []
-                if line_num >= pote_payload_line_num:
-                    line_tok = line.split()
-                    Pressure = ''
-                    Duration = ''
-                    GPHeight = ''
-                    Temperature = ''
-                    RelativeHumidity = ''
-                    SampleTemperature = ''
-                    O3PartialPressure = ''
-                    WindDirection = ''
-                    WindSpeed = ''
-                    LevelCode = ''
-                    if 'Pressure' in element_index_dict.keys():
-                        Pressure = line_tok[element_index_dict['Pressure']]
-                    if 'Duration' in element_index_dict.keys():
-                        Duration = line_tok[element_index_dict['Duration']]
-                    if 'GPHeight' in element_index_dict.keys():
-                        GPHeight = line_tok[element_index_dict['GPHeight']]
-                    if 'Temperature' in element_index_dict.keys():
-                        Temperature = line_tok[element_index_dict['Temperature']]  # noqa
-                    if 'RelativeHumidity' in element_index_dict.keys():
-                        RelativeHumidity = line_tok[element_index_dict['RelativeHumidity']]  # noqa
-                    if 'SampleTemperature' in element_index_dict.keys():
-                        SampleTemperature = line_tok[element_index_dict['SampleTemperature']]  # noqa
-                    if 'O3PartialPressure' in element_index_dict.keys():
-                        O3PartialPressure = line_tok[element_index_dict['O3PartialPressure']]  # noqa
-                    if 'WindDirection' in element_index_dict.keys():
-                        WindDirection = line_tok[element_index_dict['WindDirection']]  # noqa
-                    if 'WindSpeed' in element_index_dict.keys():
-                        WindSpeed = line_tok[element_index_dict['WindSpeed']]
-
-                    temp_data = [Pressure, O3PartialPressure, Temperature,
-                                 WindSpeed, WindDirection, LevelCode,
-                                 Duration, GPHeight, RelativeHumidity,
-                                 SampleTemperature]
-
-                    self.data_truple.append(temp_data)
-
-    def creater(self):
-        """
-        :return ecsv: EXT-CSV object that contains all tables that
-        are required for WOUDC EXT-CSV.
-
-        Creating WOUDC EXT-CSV tables, adding data collected from
-        parser method to EXT-CSV tables by using woudc-extscv lib.
-        """
-
-        LOGGER.info('Creating woudc ext-csv table')
-        ecsv = woudc_extcsv.Writer(template=True)
-        LOGGER.info('Adding header and comments.')
-        if 'raw_file' in self.station_info:
-            ecsv.add_comment('The data contained in this file was submitted '
-                             'to NDACC: ')
-            ecsv.add_comment(self.station_info['raw_file'])
-        ecsv.add_comment('This WOUDC extended CSV file was generated '
-                         'using Woudc_format lib, AMES_converter class')
-        ecsv.add_comment('\'na\' is indicated for fields where the value'
-                         ' was not available at the time generation of '
-                         'this file.')
-        ecsv.add_comment('--- NASA-Ames MNAME ---')
-        ecsv.add_comment(self.mname)
-        ecsv.add_comment('\n')
-        LOGGER.info('Adding Content Table.')
-        ecsv.add_data("CONTENT",
-                      ",".join(self.station_info["Content"])
-                      )
-        LOGGER.info('Adding Data_Generation Table.')
-        ecsv.add_data("DATA_GENERATION",
-                      ",".join(self.station_info["Data_Generation"]))
-        LOGGER.info('Adding Platform Table.')
-        ecsv.add_data("PLATFORM",
-                      ",".join(self.station_info["Platform"]))
-        LOGGER.info('Adding Instrument Table.')
-        ecsv.add_data("INSTRUMENT",
-                      ",".join(self.station_info["Instrument"]))
-        LOGGER.info('Adding Location Table.')
-        ecsv.add_data("LOCATION",
-                      ",".join(self.station_info["Location"]))
-        LOGGER.info('Adding Timestamp Table.')
-        ecsv.add_data("TIMESTAMP",
-                      ",".join(self.station_info["TimeStamp"]))
-        LOGGER.info('Adding Flight_Summary Table.')
-        ecsv.add_data("FLIGHT_SUMMARY",
-                      ",".join(self.station_info["Flight_Summary"]),
-                      field="IntegratedO3,CorrectionCode,"
-                      "SondeTotalO3,CorrectionFactor,TotalO3,"
-                      "WLCode,ObsType,Instrument,Number")
-        LOGGER.info('Adding Aixillary_Data Table.')
-        ecsv.add_data("AIXILLARY_DATA",
-                      ",".join(self.station_info["Auxillary_Data"]),
-                      field="MeteoSonde,ib1,ib2,PumpRate,"
-                      "BackgroundCorr,SampleTemperatureType,"
-                      "MinutesGroundO3")
-        LOGGER.info('Adding Profile Table.')
-        ecsv.add_data("PROFILE",
-                      ",".join(self.data_truple[0]),
-                      field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
-                            "WindDirection,LevelCode,Duration,GPHeight,"
-                            "RelativeHumidity,SampleTemperature")
-        x = 1
-        LOGGER.info('Inserting payload value.')
-        while x < len(self.data_truple):
-            ecsv.add_data("PROFILE",
-                          ",".join(self.data_truple[x]))
-            x = x + 1
-
-        return ecsv
-
-
 def load(InFormat, inpath, metadata_dict={}):
     """
     :parm inpath: full input file path
@@ -1372,7 +1407,30 @@ def load(InFormat, inpath, metadata_dict={}):
         filename = tail
     if not bool(metadata_dict):
         metadata_dict = {}
-    if InFormat.lower() == 'shadoz':
+    if InFormat.lower() == 'vaisala':
+        LOGGER.info('Initiatlizing Vaisala converter...')
+        converter = Vaisala_converter()
+        LOGGER.info('opening file: %s', inpath)
+        with open(inpath) as f:
+            try:
+                LOGGER.info('parsing file.')
+                converter.parser(f, metadata_dict)
+            except Exception, err:
+                if 'referenced before assignment' in str(err):
+                    err = 'Unsupported Vaisala formats.'
+                msg = 'Unable to parse the file due to: %s' % str(err)
+                LOGGER.error(msg)
+                raise WOUDCFormatParserError(msg)
+            try:
+                LOGGER.info('create ext-csv table.')
+                ecsv = converter.creater(filename)
+            except Exception, err:
+                msg = 'Unable to create ext-csv table due to: %s' % str(err)
+                LOGGER.error(msg)
+                raise WOUDCFormatCreateExtCsvError(msg)
+        return ecsv
+
+    elif InFormat.lower() == 'shadoz':
         LOGGER.info('Initiatlizing SHADOZ converter...')
         converter = shadoz_converter()
         LOGGER.info('opening file: %s', inpath)
@@ -1441,29 +1499,6 @@ def load(InFormat, inpath, metadata_dict={}):
                 raise WOUDCFormatCreateExtCsvError(msg)
         return ecsv
 
-    elif InFormat.lower() == 'ames-2160-boulder':
-        LOGGER.info('Initializing AMES-2160-Boulder converter...')
-        converter = AMES_2160_Boulder_converter()
-        with open(inpath) as f:
-            try:
-                LOGGER.info('parsing file.')
-                converter.parser(f, metadata_dict)
-            except Exception, err:
-                if 'referenced before assignment' in str(err):
-                    err = 'Unsupported AMES-Boulder formats.'
-                msg = 'Unable to parse the file due to: %s' % str(err)
-                LOGGER.error(msg)
-                raise WOUDCFormatParserError(msg)
-
-            try:
-                LOGGER.info('create ext-csv table.')
-                ecsv = converter.creater()
-            except Exception, err:
-                msg = 'Unable to create ext-csv table due to: %s' % str(err)
-                LOGGER.error(msg)
-                raise WOUDCFormatCreateExtCsvError(msg)
-        return ecsv
-
     else:
         LOGGER.error('Unsupported format: %s' % InFormat)
         raise RuntimeError('Unsupported format: %s' % InFormat)
@@ -1487,7 +1522,28 @@ def loads(InFormat, str_object, metadata_dict={}):
         metadata_dict = {}
     if str_object is not None:
         str_obj = str_object.split('\n')
-    if InFormat.lower() == 'shadoz':
+    if InFormat.lower() == 'vaisala':
+        LOGGER.info('Initiatlizing Vaisala converter...')
+        converter = Vaisala_converter()
+        try:
+            LOGGER.info('parsing file.')
+            converter.parser(str_obj, metadata_dict)
+        except Exception, err:
+            if 'referenced before assignment' in str(err):
+                err = 'Unsupported Vaisala formats.'
+            msg = 'Unable to parse the file due to: %s' % str(err)
+            LOGGER.error(msg)
+            raise WOUDCFormatParserError(msg)
+        try:
+            LOGGER.info('create ext-csv table.')
+            ecsv = converter.creater('N/A')
+        except Exception, err:
+            msg = 'Unable to create ext-csv table due to: %s' % str(err)
+            LOGGER.error(msg)
+            raise WOUDCFormatCreateExtCsvError(msg)
+        return ecsv
+
+    elif InFormat.lower() == 'shadoz':
         LOGGER.info('Initiatlizing SHADOZ converter...')
         converter = shadoz_converter()
         try:
@@ -1538,27 +1594,6 @@ def loads(InFormat, str_object, metadata_dict={}):
         except Exception, err:
             if 'referenced before assignment' in str(err):
                 err = 'Unsupported AMES formats.'
-            msg = 'Unable to parse the file due to: %s' % str(err)
-            LOGGER.error(msg)
-            raise WOUDCFormatParserError(msg)
-        try:
-            LOGGER.info('create ext-csv table.')
-            ecsv = converter.creater()
-        except Exception, err:
-            msg = 'Unable to create ext-csv table due to: %s' % str(err)
-            LOGGER.error(msg)
-            raise WOUDCFormatCreateExtCsvError(msg)
-        return ecsv
-
-    elif InFormat.lower() == 'ames-2160-boulder':
-        LOGGER.info('Initializing AMES-2160-Boulder converter...')
-        converter = AMES_2160_Boulder_converter()
-        try:
-            LOGGER.info('parsing file.')
-            converter.parser(str_obj, metadata_dict)
-        except Exception, err:
-            if 'referenced before assignment' in str(err):
-                err = 'Unsupported AMES-Boulder formats.'
             msg = 'Unable to parse the file due to: %s' % str(err)
             LOGGER.error(msg)
             raise WOUDCFormatParserError(msg)
