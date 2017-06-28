@@ -1058,7 +1058,7 @@ class AMES_2160_converter(converter):
                         long_index = level_counter - 1
                     if ('latitude' in line) or ('Latitude' in line):
                         lat_index = level_counter - 1
-                    if 'Station height' in line:
+                    if 'Station height' in line or 'Elevation' in line:
                         height_index = level_counter - 1
                         height_reached = True
                     if 'Serial number of ECC' in line:
