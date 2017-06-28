@@ -10,7 +10,7 @@ woudc-formats is a Python package used to perform various transformations
 from/to WOUDC supported formats.
 Currently supported features include:
 
-Readers: SHADOZ, BAS, NASA AMES files.
+Readers: SHADOZ, BAS, NASA AMES files, Vaisala.
 Writers: WOUDC totalozone [daily summary](http://woudc.org/archive/Summaries/TotalOzone/Daily_Summary/FileFormat_DV.txt) (master file).
 
 ### Installation Instructions
@@ -33,18 +33,18 @@ python setup.py install
 
 ### Command Line Interface
 ```bash
-usage: woudc-formats.py --format {SHADOZ, BAS, AMES-2160, AMES-2160-Boulder, totalozone-masterfile} --inpath PATH/FILENAME --outpath PATH/FILENAME --logfile PATH/LOGFILE --loglevel {DEBUG, CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET}
+usage: woudc-formats.py --format {SHADOZ, BAS, AMES-2160, Vaisala, totalozone-masterfile} --inpath PATH/FILENAME --outpath PATH/FILENAME --logfile PATH/LOGFILE --loglevel {DEBUG, CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET}
 
 Required Arguments:
     --format: indicate input file format
-    --inpath: import filename and path, for SHADOZ BAS and AMES
+    --inpath: import filename and path, for SHADOZ, BAS, Vaisala, and AMES
     --outpath: indicate the the path to output file, including output filename
     --logfile: path to log file, including file name
     --loglevel: define log level for logging
 
 Optional Arguments:
     --metadata: a dictionary formatted string containing some specified station metadation information
-            ex: {"station": "XXX", "agency": "XXX", "inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX"}
+            ex: {"station": "XXX", "agency": "XXX", "inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX", "country": "XXX"}
 ```
 
 ### API
