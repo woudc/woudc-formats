@@ -313,7 +313,7 @@ class shadoz_converter(converter):
                     # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for item in header_list:
-                        # Insert data into dictionary only when this 
+                        # Insert data into dictionary only when this
                         # field is empty
                         if temp_dict[item] == '':
                             temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
@@ -926,10 +926,11 @@ class AMES_2160_converter(converter):
             counter += 1
             # Collecting information line by line
             if counter == 1:
-            # Two situation: 
-            #      1. first line contains 2160
-            #      2. ndacc AMES-2160, contains a header line for the file
-            # Only AMES from ndacc with header contains time information(hh:mm:ss)
+                # Two situation:
+                #      1. first line contains 2160
+                #      2. ndacc AMES-2160, contains a header line for the file
+                # Only AMES from ndacc with header contains time
+                # information(hh:mm:ss)
                 if '2160' in line:
                     station_name = metadata_dict['station']
                     flag = True
@@ -1010,8 +1011,10 @@ class AMES_2160_converter(converter):
             level_reached = False  # flag: metadata header reached or not
             level_data_reached = False  # flag: metadata value readed or not
             pressure_reached = False  # flag: payload header reached or not
-            payload_element_done = False  # flag: reached end payload header or not
-            ecc_inst_reached = False  # flag: Does file in specific format that instrument info followed by a ECC line
+            payload_element_done = False  # flag: reached end payload header
+            ecc_inst_reached = False
+            # flag: Does file in specific format that
+            # instrument info followed by a ECC line
             LOGGER.info('Checking observation condition.')
             for line in file_content:
                 # Some AMES file use () rather than [], change it
@@ -1034,7 +1037,8 @@ class AMES_2160_converter(converter):
                         element_mapping.pop(test_str)
                     element_index += 1
                 if ecc_inst_reached:
-                    # ecc_inst_reached reached, next line is instrument information
+                    # ecc_inst_reached reached, next line is
+                    # instrument information
                     inst_raw = line.strip()
                     ecc_inst_reached = False
                 if line.strip() == 'ECC':
@@ -1076,18 +1080,19 @@ class AMES_2160_converter(converter):
                         if (len(level_data) < data_block_size and
                            line[0] != ' '):
                             if len(re.findall('[A-Za-z]+', line)) > 0:
-                                # metadata value line with letter is corresponde to one header
+                                # metadata value line with letter is
+                                # corresponde to one header
                                 level_data.append(line.strip())
                                 continue
                             line_tok = line.split(' ')
-                            # metadata value line with only number cooresponde to multiple
-                            # header, each value seperated by space
+                            # metadata value line with only number cooresponde
+                            # to multiple header, each value seperated by space
                             for item in line_tok:
                                 item = item.strip()
                                 if item != ' ' and item != '':
                                     level_data.append(item)
                         else:
-                            # only payload information starts with space, 
+                            # only payload information starts with space,
                             # if space found, payload line reached
                             level_data_reached = False
                             level_reached = False
@@ -1259,7 +1264,8 @@ class AMES_2160_converter(converter):
 
         # Pick and choose payload data
         # if user using loads method, file_content is a list,
-        # there is a special logic to threat it if it is a list (define line_num to 7)
+        # there is a special logic to threat it if it is a list
+        # (define line_num to 7)
         line_num = 7
         LOGGER.info('Collecting payload data.')
         if pote_payload_line_num != 0:

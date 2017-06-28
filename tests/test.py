@@ -384,8 +384,8 @@ class Test(unittest.TestCase):
         Vaisala Tests
         """
         Vaisala_filename = "tests/Ozono000121_14SEG_SKBO.txt"
-        Vai = load('Vaisala', Vaisala_filename, 
-                 {"station": "Vaisala", "agency": "Vaisala_Agency", "ID": "666", "SA": "Vaisala_SA", "country": "Vaisala_Country"})
+        Vai = load('Vaisala', Vaisala_filename,
+                  {"station": "Vaisala", "agency": "Vaisala_Agency", "ID": "666", "SA": "Vaisala_SA", "country": "Vaisala_Country"})  # noqa
 
         self.assertTrue("CONTENT$1" in Vai.extcsv_ds.keys())
         self.assertTrue("DATA_GENERATION$1" in Vai.extcsv_ds.keys())
@@ -418,23 +418,23 @@ class Test(unittest.TestCase):
         self.assertTrue("Date" in Vai.extcsv_ds["TIMESTAMP$1"].keys())
         self.assertTrue("Time" in Vai.extcsv_ds["TIMESTAMP$1"].keys())
         self.assertTrue("Pressure" in Vai.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("O3PartialPressure" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("O3PartialPressure" in Vai.extcsv_ds["PROFILE$1"].keys())  # noqa
         self.assertTrue("Temperature" in Vai.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("WindSpeed" in Vai.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("WindDirection" in Vai.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("LevelCode" in Vai.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("Duration" in Vai.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("GPHeight" in Vai.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("RelativeHumidity" in Vai.extcsv_ds["PROFILE$1"].keys())
-        self.assertTrue("SampleTemperature" in Vai.extcsv_ds["PROFILE$1"].keys())
+        self.assertTrue("RelativeHumidity" in Vai.extcsv_ds["PROFILE$1"].keys())  # noqa
+        self.assertTrue("SampleTemperature" in Vai.extcsv_ds["PROFILE$1"].keys())  # noqa
 
         self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["Pressure"][0], "753.2")
         self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["Pressure"][1], "747.3")
         self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["Pressure"][10], "692.1")
-        self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["O3PartialPressure"][10], "2.12")
+        self.assertEqual(Vai.extcsv_ds["PROFILE$1"]["O3PartialPressure"][10], "2.12")  # noqa
         self.assertEqual(Vai.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
-        self.assertEqual(Vai.extcsv_ds["PLATFORM$1"]["Country"], ["Vaisala_Country"])
-        self.assertEqual(Vai.extcsv_ds["DATA_GENERATION$1"]["Agency"], ["Vaisala_Agency"])
+        self.assertEqual(Vai.extcsv_ds["PLATFORM$1"]["Country"], ["Vaisala_Country"])  # noqa
+        self.assertEqual(Vai.extcsv_ds["DATA_GENERATION$1"]["Agency"], ["Vaisala_Agency"])  # noqa
 
 
 # main
