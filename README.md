@@ -48,6 +48,7 @@ Optional Arguments:
 
 Importance:
     For AMES-2160 format, 'station' and 'agency' arguments in --metadata are required in order to process the file.
+    For Vaisala format, 'station', 'ID', 'agency', 'country', and 'SA' arguments in --metadata are required in order to process the file.
 ```
 
 ### API
