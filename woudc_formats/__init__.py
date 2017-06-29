@@ -1731,6 +1731,7 @@ def cli():
             try:
                 LOGGER.info('Downloading totalozone snapshot CSV...')
                 output = util.download_zip(input_path)
+                print output.getvalue()
                 LOGGER.info('Downloading totalozone snapshot CSV...')
             except Exception, err:
                 msg = 'Unable to download totalozone snapshot file from: %s,\
