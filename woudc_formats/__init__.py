@@ -1665,7 +1665,7 @@ def cli():
             'SHADOZ',
             'BAS',
             'AMES-2160',
-            'AMES-2160-Boulder',
+            'VAISALA',
             'totalozone-masterfile'
         )
     )
@@ -1679,7 +1679,7 @@ def cli():
     PARSER.add_argument(
         '--outpath',
         help='Path to output file',
-        required=True
+        required=False
     )
 
     PARSER.add_argument(
@@ -1714,13 +1714,16 @@ def cli():
         metadata_dict = json.loads(ARGS.metadata)
     else:
         metadata_dict = {}
+    if ARGS.outpath:
+        output_path = ARGS.outpath
+    else:
+        output_path = '%s.csv' % ARGS.inpath
     # setup logging
     if ARGS.loglevel and ARGS.logfile:
         util.setup_logger(ARGS.logfile, ARGS.loglevel)
 
     if ARGS.format == 'totalozone-masterfile':
         input_path = ARGS.inpath
-        output_path = ARGS.outpath
         LOGGER.info('Running totalozone masterfile process...')
         MF = TotalOzone_MasterFile()
         if input_path.startswith('http'):
@@ -1728,7 +1731,6 @@ def cli():
             try:
                 LOGGER.info('Downloading totalozone snapshot CSV...')
                 output = util.download_zip(input_path)
-                print output.getvalue()
                 LOGGER.info('Downloading totalozone snapshot CSV...')
             except Exception, err:
                 msg = 'Unable to download totalozone snapshot file from: %s,\
@@ -1767,7 +1769,7 @@ def cli():
     else:
         ecsv = load(ARGS.format, ARGS.inpath, metadata_dict)
         if ecsv is not None:
-            dump(ecsv, ARGS.outpath)
+            dump(ecsv, output_path)
 
 
 class WOUDCFormatCreateExtCsvError(Exception):

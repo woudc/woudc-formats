@@ -37,12 +37,12 @@ usage: woudc-formats.py --format {SHADOZ, BAS, AMES-2160, Vaisala, totalozone-ma
 
 Required Arguments:
     --format: indicate input file format
-    --inpath: import filename and path, for SHADOZ, BAS, Vaisala, and AMES
-    --outpath: indicate the the path to output file, including output filename
+    --inpath: import filename and path, for SHADOZ, BAS, Vaisala, and AMES-2160
     --logfile: path to log file, including file name
     --loglevel: define log level for logging
 
 Optional Arguments:
+    --outpath: indicate the output file path, by default is 'INPATH.csv'
     --metadata: a dictionary formatted string containing some specified station metadation information
             ex: {"station": "XXX", "agency": "XXX", "inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX", "country": "XXX", "GAW_ID": "XXX"}
 
@@ -79,4 +79,7 @@ woudc_formats.dumps(ecsv) : Take ext-csv object and prints to screen.
 woudc-formats.py --format SHADOZ --inpath ./bin/SAMPLE.dat --outpath ./bin/SAMPLE.csv --logfile ./bin/LOG.log --loglevel DEBUG
 woudc-formats.py --format totalozone-masterfile --inpath <full local or web path to totalozone snapshot> --outpath <output path> --loglevel <log level> --logfile <log file>
 woudc-formats.py --format AMES-2160 --inpath <full local path to AMES file> --outpath <output path> --loglevel <log level> --logfile <log file> --metadata '{"station": "Boulder", "agency": "ukmo", "SA": "XXX", "inst type": "ECC", "inst number": "6A3412"}'
+
+For Station 'Neumayer':
+woudc-formats.py --format AMES-2160 --inpath INPATH --logfile log.log --loglevel DEBUG --metadata '{"station":"Neumayer","agency":"awi"}'
 ```
