@@ -215,7 +215,8 @@ class Test(unittest.TestCase):
         AMES_filename = "tests/le140101.b11"
         AMES_filename2 = 'tests/bu20170609.b18'
         a = load('AMES-2160', AMES_filename, "Lerwick", "UKMO")
-        b = load('AMES-2160', AMES_filename2, "Boulder ESRL HQ (CO)", "NOAA-CMDL")
+        b = load('AMES-2160', AMES_filename2, "Boulder ESRL HQ (CO)",
+                 "NOAA-CMDL")
 
         self.assertTrue("CONTENT$1" in a.extcsv_ds.keys())
         self.assertTrue("DATA_GENERATION$1" in a.extcsv_ds.keys())

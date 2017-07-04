@@ -1387,7 +1387,7 @@ class AMES_2160_converter(converter):
         return ecsv
 
 
-def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=None):
+def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=None):  # noqa
     """
     :parm inpath: full input file path
     :parm InFormat: Input file format: SHADOZ, AMES-2160, BAS,
@@ -1506,7 +1506,7 @@ def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=N
         return None
 
 
-def loads(InFormat, str_object, station_name=None, agency_name=None, metadata_dict=None):
+def loads(InFormat, str_object, station_name=None, agency_name=None, metadata_dict=None):  # noqa
     """
     :parm str_obj: string representation of input file
     :parm InFormat: Input file format: SHADOZ, AMES-2160, BAS,
@@ -1789,7 +1789,8 @@ def cli():
         os.remove(os.path.join(output_path, 'totalozone.csv'))
         LOGGER.info('TotalOzone masterfile process complete.')
     else:
-        ecsv = load(ARGS.format, ARGS.inpath, station_name, agency_name, metadata_dict)
+        ecsv = load(ARGS.format, ARGS.inpath, station_name,
+                    agency_name, metadata_dict)
         if ecsv is not None:
             dump(ecsv, output_path)
 
