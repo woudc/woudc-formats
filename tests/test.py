@@ -214,10 +214,8 @@ class Test(unittest.TestCase):
         """
         AMES_filename = "tests/le140101.b11"
         AMES_filename2 = 'tests/bu20170609.b18'
-        a = load('AMES-2160', AMES_filename,
-                 {"station": "Lerwick", "agency": "UKMO"})
-        b = load('AMES-2160', AMES_filename2,
-                 {"station": "Boulder ESRL HQ (CO)", "agency": "NOAA-CMDL"})
+        a = load('AMES-2160', AMES_filename, "Lerwick", "UKMO")
+        b = load('AMES-2160', AMES_filename2, "Boulder ESRL HQ (CO)", "NOAA-CMDL")
 
         self.assertTrue("CONTENT$1" in a.extcsv_ds.keys())
         self.assertTrue("DATA_GENERATION$1" in a.extcsv_ds.keys())
@@ -384,8 +382,7 @@ class Test(unittest.TestCase):
         Vaisala Tests
         """
         Vaisala_filename = "tests/Ozono000121_14SEG_SKBO.txt"
-        Vai = load('Vaisala', Vaisala_filename,
-                  {"station": "Vaisala", "agency": "Vaisala_Agency", "ID": "666", "SA": "Vaisala_SA", "country": "Vaisala_Country"})  # noqa
+        Vai = load('Vaisala', Vaisala_filename, "Vaisala", "Vaisala_Agency", {"ID": "666", "SA": "Vaisala_SA", "country": "Vaisala_Country"})  # noqa
 
         self.assertTrue("CONTENT$1" in Vai.extcsv_ds.keys())
         self.assertTrue("DATA_GENERATION$1" in Vai.extcsv_ds.keys())
