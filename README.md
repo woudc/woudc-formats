@@ -33,18 +33,18 @@ python setup.py install
 
 ### Command Line Interface
 ```bash
-usage: woudc-formats.py --format {SHADOZ, BAS, AMES-2160, Vaisala, totalozone-masterfile} --inpath PATH/FILENAME --outpath PATH/FILENAME --logfile PATH/LOGFILE --loglevel {DEBUG, CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET}
+usage: woudc-formats.py --format {SHADOZ, BAS, AMES-2160, Vaisala, totalozone-masterfile} --inpath PATH/FILENAME --logfile PATH/LOGFILE --loglevel {DEBUG, CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET}
 
 Required Arguments:
     --format: indicate input file format
-    --statuib: station name in WOUDC
-    --agency: agency name in WOUDc
     --inpath: import filename and path, for SHADOZ, BAS, Vaisala, and AMES-2160
     --logfile: path to log file, including file name
     --loglevel: define log level for logging
 
 Optional Arguments:
     --outpath: indicate the output file path, by default is 'INPATH.csv'
+    --statuib: station name in WOUDC
+    --agency: agency name in WOUDC
     --metadata: a dictionary formatted string containing some specified station metadation information
             ex: {"inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX", "country": "XXX", "GAW_ID": "XXX"}
 
@@ -57,7 +57,7 @@ Importance:
 ```bash
 usage: 
 import woudc_formats
-ecsv = woudc_formats.load(In_Format, InPut_File_Path)
+ecsv = woudc_formats.load(In_Format, InPut_File_Path, station, agency)
 if ecsv is not None:
     woudc_formats.dump(ecsv, Output_file_path)
 
