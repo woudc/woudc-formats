@@ -79,7 +79,7 @@ class shadoz_converter(converter):
         self.ori = []
         self.inv = []
 
-    def parser(self, file_content, metadata_dic):
+    def parser(self, file_content, station_name, agency_name, metadata_dic):
         # Place left for time and define logging
         """
         :parm file_content: opened file object for SHADOZ file.
@@ -165,8 +165,8 @@ class shadoz_converter(converter):
                 ",", ".")
             metadata_dict["Station Principal Investigator(s)"] = re_in
 
-        if 'station' in metadata_dic:
-            station = metadata_dic['station']
+        if station_name is not None:
+            station = station_name
         else:
             try:
                 number = metadata_dict["STATION"].index(",")
@@ -175,8 +175,8 @@ class shadoz_converter(converter):
                 msg = 'Unable to get station name due to: %s' % str(err)
                 LOGGER.error(msg)
 
-        if 'agency' in metadata_dic:
-            Agency = metadata_dic['agency']
+        if agency_name is not None:
+            Agency = agency_name
         else:
             try:
                 # Get agency information from foncig
@@ -485,7 +485,7 @@ class Vaisala_converter(converter):
         self.data_truple = []
         self.station_info = {}
 
-    def parser(self, file_content, metadata_dic):
+    def parser(self, file_content, station_name, agency_name, metadata_dic):
         """
         :parm file_content: opened file object for SHADOZ file.
         :parm metadata_dic: user specified metadata informatiom
@@ -546,7 +546,7 @@ class Vaisala_converter(converter):
         try:
             self.station_info["Data_Generation"] = [
                 datetime.datetime.utcnow().strftime('%Y-%m-%d'),
-                metadata_dic['agency'],
+                agency_name,
                 '1',
                 metadata_dic['SA']
             ]
@@ -558,7 +558,7 @@ class Vaisala_converter(converter):
         try:
             Type = 'STN'
             ID = metadata_dic['ID']
-            Name = metadata_dic['station']
+            Name = station_name
             Country = metadata_dic['country']
             GAW_ID = ''
             if "GAW_ID" in metadata_dic:
@@ -906,7 +906,7 @@ class AMES_2160_converter(converter):
         self.station_info = {}
         self.mname = ''
 
-    def parser(self, file_content, metadata_dict):
+    def parser(self, file_content, station_name, agency_name, metadata_dict):
         """
         :parm file_content: opened file object for AMES file.
         :parm metadata_dict: dictionary stores user inputed station metadata
@@ -932,7 +932,8 @@ class AMES_2160_converter(converter):
                 # Only AMES from ndacc with header contains time
                 # information(hh:mm:ss)
                 if '2160' in line:
-                    station_name = metadata_dict['station']
+                    station = station_name
+                    station = station.decode('UTF-8')
                     flag = True
                     continue
                 else:
@@ -960,8 +961,8 @@ class AMES_2160_converter(converter):
                 # Third line is the agency name, usually is different
                 # from the name in WOUDC database, it is perfered
                 # for user to pass in agency name
-                if 'agency' in metadata_dict:
-                    Agency = metadata_dict['agency']
+                if agency_name is not None:
+                    Agency = agency_name
                 else:
                     Agency = 'UNKNOWN'
             if counter == 5:
@@ -1189,18 +1190,18 @@ class AMES_2160_converter(converter):
             for row in station_metadata['features']:
                 properties = row['properties']
                 # geometry = row['geometry']['coordinates']
-                if station_name.lower() == properties['platform_name'].lower():
+                if station.lower() == properties['platform_name'].lower():
                     properties_list.append(properties)
                     # geometry_list.append(geometry)
                     counter = counter + 1
             if counter == 0:
-                LOGGER.warning('Unable to find stationi: %s, start lookup process.') % station_name  # noqa
+                LOGGER.warning('Unable to find stationi: %s, start lookup process.') % station  # noqa
                 try:
                     ID = 'na'
                     Type = 'unknown'
                     Country = 'unknown'
                     GAW = 'unknown'
-                    # Lat, Long = util.get_NDACC_station(station_name)
+                    # Lat, Long = util.get_NDACC_station(station)
                 except Exception, err:
                     msg = 'Unable to find the station in lookup due to: %s' % str(err)  # noqa
                     LOGGER.error(msg)
@@ -1223,7 +1224,7 @@ class AMES_2160_converter(converter):
                         # Long = str(geometry_list[length][0])
                     length = length + 1
 
-            self.station_info['Platform'] = [Type, ID, station_name,
+            self.station_info['Platform'] = [Type, ID, station,
                                              Country, GAW]
         except Exception, err:
             msg = 'Unable to process station metadata due to: %s' % str(err)
@@ -1386,7 +1387,7 @@ class AMES_2160_converter(converter):
         return ecsv
 
 
-def load(InFormat, inpath, metadata_dict={}):
+def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=None):  # noqa
     """
     :parm inpath: full input file path
     :parm InFormat: Input file format: SHADOZ, AMES-2160, BAS,
@@ -1414,7 +1415,7 @@ def load(InFormat, inpath, metadata_dict={}):
         with open(inpath) as f:
             try:
                 LOGGER.info('parsing file.')
-                converter.parser(f, metadata_dict)
+                converter.parser(f, station_name, agency_name, metadata_dict)
             except Exception, err:
                 if 'referenced before assignment' in str(err):
                     err = 'Unsupported Vaisala formats.'
@@ -1437,7 +1438,7 @@ def load(InFormat, inpath, metadata_dict={}):
         with open(inpath) as f:
             try:
                 LOGGER.info('parsing file.')
-                converter.parser(f, metadata_dict)
+                converter.parser(f, station_name, agency_name, metadata_dict)
             except Exception, err:
                 if 'referenced before assignment' in str(err):
                     err = 'Unsupported SHADOZ formats.'
@@ -1483,7 +1484,7 @@ def load(InFormat, inpath, metadata_dict={}):
         with open(inpath) as f:
             try:
                 LOGGER.info('parsing file.')
-                converter.parser(f, metadata_dict)
+                converter.parser(f, station_name, agency_name, metadata_dict)
             except Exception, err:
                 if 'referenced before assignment' in str(err):
                     err = 'Unsupported AMES formats.'
@@ -1505,7 +1506,7 @@ def load(InFormat, inpath, metadata_dict={}):
         return None
 
 
-def loads(InFormat, str_object, metadata_dict={}):
+def loads(InFormat, str_object, station_name=None, agency_name=None, metadata_dict=None):  # noqa
     """
     :parm str_obj: string representation of input file
     :parm InFormat: Input file format: SHADOZ, AMES-2160, BAS,
@@ -1527,7 +1528,7 @@ def loads(InFormat, str_object, metadata_dict={}):
         converter = Vaisala_converter()
         try:
             LOGGER.info('parsing file.')
-            converter.parser(str_obj, metadata_dict)
+            converter.parser(str_obj, station_name, agency_name, metadata_dict)
         except Exception, err:
             if 'referenced before assignment' in str(err):
                 err = 'Unsupported Vaisala formats.'
@@ -1548,7 +1549,7 @@ def loads(InFormat, str_object, metadata_dict={}):
         converter = shadoz_converter()
         try:
             LOGGER.info('parsing file.')
-            converter.parser(str_obj, metadata_dict)
+            converter.parser(str_obj, station_name, agency_name, metadata_dict)
         except Exception, err:
             if 'referenced before assignment' in str(err):
                 err = 'Unsupported SHADOZ formats.'
@@ -1590,7 +1591,7 @@ def loads(InFormat, str_object, metadata_dict={}):
         converter = AMES_2160_converter()
         try:
             LOGGER.info('parsing file.')
-            converter.parser(str_obj, metadata_dict)
+            converter.parser(str_obj, station_name, agency_name, metadata_dict)
         except Exception, err:
             if 'referenced before assignment' in str(err):
                 err = 'Unsupported AMES formats.'
@@ -1665,9 +1666,21 @@ def cli():
             'SHADOZ',
             'BAS',
             'AMES-2160',
-            'AMES-2160-Boulder',
+            'VAISALA',
             'totalozone-masterfile'
         )
+    )
+
+    PARSER.add_argument(
+        '--station',
+        help='WOUDC station name',
+        required=False
+    )
+
+    PARSER.add_argument(
+        '--agency',
+        help='WOUDC database\'s agency name',
+        required=False
     )
 
     PARSER.add_argument(
@@ -1679,7 +1692,7 @@ def cli():
     PARSER.add_argument(
         '--outpath',
         help='Path to output file',
-        required=True
+        required=False
     )
 
     PARSER.add_argument(
@@ -1705,22 +1718,33 @@ def cli():
 
     PARSER.add_argument(
         '--metadata',
-        help='dictionary of metadata. Keys: station, agency, SA, inst type, inst number, raw_file',  # noqa
+        help='dictionary of metadata. Keys: SA, inst type, inst number, raw_file',  # noqa
         required=False
     )
 
     ARGS = PARSER.parse_args()
+    if ARGS.station:
+        station_name = ARGS.station
+    else:
+        station_name = None
+    if ARGS.agency:
+        agency_name = ARGS.agency
+    else:
+        agency_name = None
     if ARGS.metadata:
         metadata_dict = json.loads(ARGS.metadata)
     else:
         metadata_dict = {}
+    if ARGS.outpath:
+        output_path = ARGS.outpath
+    else:
+        output_path = '%s.csv' % ARGS.inpath
     # setup logging
     if ARGS.loglevel and ARGS.logfile:
         util.setup_logger(ARGS.logfile, ARGS.loglevel)
 
     if ARGS.format == 'totalozone-masterfile':
         input_path = ARGS.inpath
-        output_path = ARGS.outpath
         LOGGER.info('Running totalozone masterfile process...')
         MF = TotalOzone_MasterFile()
         if input_path.startswith('http'):
@@ -1765,9 +1789,10 @@ def cli():
         os.remove(os.path.join(output_path, 'totalozone.csv'))
         LOGGER.info('TotalOzone masterfile process complete.')
     else:
-        ecsv = load(ARGS.format, ARGS.inpath, metadata_dict)
+        ecsv = load(ARGS.format, ARGS.inpath, station_name,
+                    agency_name, metadata_dict)
         if ecsv is not None:
-            dump(ecsv, ARGS.outpath)
+            dump(ecsv, output_path)
 
 
 class WOUDCFormatCreateExtCsvError(Exception):
