@@ -517,6 +517,8 @@ class Vaisala_converter(converter):
                 header.pop()
             elif 'min  s      hPa      gpm     deg C      %       C     C    C/km     m/sOzone [mPa]' in line:  # noqa
                 flag = 1
+            elif 'min  s      hPa      gpm     deg C      %       C     C    C/km     m/sO3 [mPa] and Tb [C]' in line:  # noqa
+                flag = 2
             elif flag == 1:
                 min = line[0:4].strip()
                 seconds = line[4:7].strip()
@@ -525,6 +527,17 @@ class Vaisala_converter(converter):
                 counter = counter + 1
                 # Pick and choose required information for payload
                 cur_line = [line[11:18].strip(), line[76:80].strip(),
+                            line[31:37].strip(), '', '', '', time,
+                            line[20:27].strip(), line[40:44].strip(), '']
+                self.data_truple.insert(counter, cur_line)
+            elif flag == 2:
+                min = line[0:4].strip()
+                seconds = line[4:7].strip()
+                time = str(int(min) * 60 + int(seconds))
+                cur_line = []
+                counter = counter + 1
+                # Pick and choose required information for payload
+                cur_line = [line[11:18].strip(), line[74:80].strip(),
                             line[31:37].strip(), '', '', '', time,
                             line[20:27].strip(), line[40:44].strip(), '']
                 self.data_truple.insert(counter, cur_line)
@@ -582,7 +595,7 @@ class Vaisala_converter(converter):
                 inst_number = metadata_dic['inst number']
 
             if inst_model == '' and inst_number == '':
-                if 'z' == metadata["instrument"][0:1].lower():  # noqa
+                if 'z' == metadata["instrument"][0:1].lower() or 'c' == metadata["instrument"][0:1].lower():  # noqa
                     inst_model = metadata["instrument"][0:1]  # noqa
                     inst_number = metadata["instrument"][1:]  # noqa
                 elif re.search('[a-zA-Z]', metadata["instrument"][0:2]):  # noqa:
@@ -667,7 +680,8 @@ class Vaisala_converter(converter):
                 IntO3 = metadata['IntO3']
             if 'ResO3' in metadata:
                 ResO3 = metadata['ResO3']
-            TotO3 = str(float(IntO3) + float(ResO3))
+            if IntO3 != '' and ResO3 != '':
+                TotO3 = str(float(IntO3) + float(ResO3))
             self.station_info['Flight_Summary'] = [
                 IntO3, '0', TotO3, '', '', '', '', '', ''
             ]
