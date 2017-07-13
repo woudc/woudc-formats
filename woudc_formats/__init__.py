@@ -152,6 +152,7 @@ class shadoz_converter(converter):
         except Exception, err:
             msg = 'Unable to get Content Table information due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
+            return False, msg
 
         # Change date format to meet WOUDC requirement
         # Parsing data from SHADOZ to WOUDC format
@@ -172,8 +173,9 @@ class shadoz_converter(converter):
                 number = metadata_dict["STATION"].index(",")
                 station = metadata_dict["STATION"][0:number]
             except Exception, err:
-                msg = 'Unable to get station name due to: %s' % str(err)
+                msg = 'Unable to get station name from file due to: %s' % str(err)  # noqa
                 LOGGER.error(msg)
+                station = 'UNKNOWN'
 
         if agency_name is not None:
             Agency = agency_name
@@ -183,18 +185,19 @@ class shadoz_converter(converter):
                 Agency = util.get_config_value(
                     "AGENCY", station)
             except Exception, err:
-                LOGGER.error(str(err))
+                msg = 'Unable to get agency info from config file due to : %s' % str(err)  # noqa
+                LOGGER.error(msg)
                 Agency = 'N/A'
-                pass
 
         try:
             # Map Name from SHADOZ file to WOUDC databse's Name
+            LOGGER.info('Try to map station name to WOUDC databaset station name.')  # noqa
             station = util.get_config_value(
                 "NAME CONVERTER",
                 metadata_dict["STATION"][0:number])
         except Exception, err:
-            LOGGER.error(str(err))
-            pass
+            msg = 'Unable to find a station name mapping in woudc db due to: %s' % str(err)  # noqa
+            LOGGER.error(msg)
 
         station = station.decode('UTF-8')
 
@@ -224,12 +227,19 @@ class shadoz_converter(converter):
                 metadata_dict["Station Principal Investigator(s)"]
             ]
         except Exception, err:
-            msg = 'Unable to get Agency information due to: %s' % str(err)
+            msg = 'Unable to get Data Generation information due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
-        self.station_info["Location"] = [metadata_dict["Latitude (deg)"],
-                                         metadata_dict["Longitude (deg)"],
-                                         metadata_dict["Elevation (m)"]]
+        try:
+            self.station_info["Location"] = [metadata_dict["Latitude (deg)"],
+                                             metadata_dict["Longitude (deg)"],
+                                             metadata_dict["Elevation (m)"]]
+
+        except Exception, err:
+            msg = 'Unable to get Location information due to: %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
         try:
             # Formatting Date
@@ -268,15 +278,17 @@ class shadoz_converter(converter):
                 metadata_dict['Final Integrated O3 (DU)'],
                 "", "", "", "", "", "", "", ""]
 
-        Temp_Radiosonde = metadata_dict["Radiosonde, SN"]
-
         try:
+            Temp_Radiosonde = metadata_dict["Radiosonde, SN"]
             idx = Temp_Radiosonde.index(',')
             metadata_dict["Radiosonde, SN"] = Temp_Radiosonde[0:idx]
         except Exception, err:
-            msg = 'Radiosonde invalid value'
+            msg = 'Radiosonde invalid value or not found in file'
             LOGGER.error(msg)
             metadata_dict["Radiosonde, SN"] = ""
+
+        if 'Background current (uA)' not in  metadata_dict:
+            metadata_dict["Background current (uA)"] = ''
 
         self.station_info["Auxillary_Data"] = [
             metadata_dict["Radiosonde, SN"], "",
@@ -287,8 +299,9 @@ class shadoz_converter(converter):
             LOGGER.info('Getting station metadata by pywoudc.')
             station_metadata = client.get_station_metadata(raw=False)
         except Exception, err:
-            msg = 'Unable to get metadata due to: %S' % str(err)
+            msg = 'Unable to get metadata from pywoudc due to: %S' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
         # Collecting station metadata by using pywoudc
         # Station name and agency name is required to find
@@ -324,8 +337,9 @@ class shadoz_converter(converter):
                 self.station_info["Platform"].append(temp_dict[item])
 
         except Exception, err:
-            msg = 'Unable to process station metadata due to: %s' % str(err)
+            msg = 'Unable to process station metadata from pywoudc due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
         try:
             # Processing Instrument information by using pywoudc
@@ -369,6 +383,9 @@ class shadoz_converter(converter):
         except Exception, err:
             msg = 'Unable to process instrument metadata due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
+
+        return True, 'Parsing Done.'
 
     def creater(self, filename):
         """
@@ -400,18 +417,28 @@ class shadoz_converter(converter):
             msg = 'Unable to add header due to: %s' % str(err)
             LOGGER.error(msg)
 
-        LOGGER.info('Adding Content Table.')
-        ecsv.add_data("CONTENT",
-                      ",".join(self.station_info["Content"]))
+        try:
+            LOGGER.info('Adding Content Table.')
+            ecsv.add_data("CONTENT",
+                          ",".join(self.station_info["Content"]))
+        except Exception, err:
+            msg = 'Unable to add content table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Data_generation Table.')
-        ecsv.add_data("DATA_GENERATION",
-                      ",".join(self.station_info["Data_Generation"]))
-        x = len(self.inv)
-        c = 0
-        while c < x:
-            ecsv.add_table_comment('DATA_GENERATION', self.inv[c])
-            c = c + 1
+        try:
+            LOGGER.info('Adding Data_generation Table.')
+            ecsv.add_data("DATA_GENERATION",
+                          ",".join(self.station_info["Data_Generation"]))
+            x = len(self.inv)
+            c = 0
+            while c < x:
+                ecsv.add_table_comment('DATA_GENERATION', self.inv[c])
+                c = c + 1
+        except Exception, err:
+            msg = 'Unable to add Data Generation table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
         try:
             if self.station_info["Platform"][1] == "436":
@@ -430,39 +457,71 @@ class shadoz_converter(converter):
         except Exception, err:
             msg = 'Unable to add Platform Table due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Instrument Table.')
-        ecsv.add_data("INSTRUMENT",
-                      ",".join(self.station_info["Instrument"]))
+        try:
+            LOGGER.info('Adding Instrument Table.')
+            ecsv.add_data("INSTRUMENT",
+                          ",".join(self.station_info["Instrument"]))
+        except Exception, err:
+            msg = 'Unable to add Instrument table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Location Table.')
-        ecsv.add_data("LOCATION",
-                      ",".join(self.station_info["Location"]))
+        try:
+            LOGGER.info('Adding Location Table.')
+            ecsv.add_data("LOCATION",
+                          ",".join(self.station_info["Location"]))
+        except Exception, err:
+            msg = 'Unable to add Location table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Timestamp Table.')
-        ecsv.add_data("TIMESTAMP",
-                      ",".join(self.station_info["Timestamp"]))
+        try:
+            LOGGER.info('Adding Timestamp Table.')
+            ecsv.add_data("TIMESTAMP",
+                          ",".join(self.station_info["Timestamp"]))
+        except Exception, err:
+            msg = 'Unable to add Timestamp table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Flight_Summary Table.')
-        ecsv.add_data("FLIGHT_SUMMARY",
-                      ",".join(self.station_info["Flight_Summary"]),
-                      field="IntegratedO3,CorrectionCode,"
-                      "SondeTotalO3,CorrectionFactor,TotalO3,"
-                      "WLCode,ObsType,Instrument,Number")
+        try:
+            LOGGER.info('Adding Flight_Summary Table.')
+            ecsv.add_data("FLIGHT_SUMMARY",
+                          ",".join(self.station_info["Flight_Summary"]),
+                          field="IntegratedO3,CorrectionCode,"
+                          "SondeTotalO3,CorrectionFactor,TotalO3,"
+                          "WLCode,ObsType,Instrument,Number")
+        except Exception, err:
+            msg = 'Unable to add Flight_Summary table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Aixillary_Data Table.')
-        ecsv.add_data("AIXILLARY_DATA",
-                      ",".join(self.station_info["Auxillary_Data"]),
-                      field="MeteoSonde,ib1,ib2,PumpRate,"
-                      "BackgroundCorr,SampleTemperatureType,"
-                      "MinutesGroundO3")
+        try:
+            LOGGER.info('Adding Aixillary_Data Table.')
+            ecsv.add_data("AIXILLARY_DATA",
+                          ",".join(self.station_info["Auxillary_Data"]),
+                          field="MeteoSonde,ib1,ib2,PumpRate,"
+                          "BackgroundCorr,SampleTemperatureType,"
+                          "MinutesGroundO3")
+        except Exception, err:
+            msg = 'Unable to add Aixillary table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
         LOGGER.info('Adding Profile Table(Payload).')
-        ecsv.add_data("PROFILE",
-                      ",".join(self.data_truple[0]),
-                      field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
-                      "WindDirection,LevelCode,Duration,GPHeight,"
-                      "RelativeHumidity,SampleTemperature")
+        try:
+            ecsv.add_data("PROFILE",
+                          ",".join(self.data_truple[0]),
+                          field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
+                          "WindDirection,LevelCode,Duration,GPHeight,"
+                          "RelativeHumidity,SampleTemperature")
+        except Exception, err:
+            msg = 'Cannot add PROFILE table due to: %s ' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+
         x = 1
         LOGGER.info('Insert payload value to Profile Table.')
         while x < len(self.data_truple) - 1:
@@ -470,7 +529,7 @@ class shadoz_converter(converter):
             ecsv.add_data("PROFILE",
                           ",".join(self.data_truple[x]))
             x = x + 1
-        return ecsv
+        return ecsv, 'Create EXT-CSV object Done.'
 
 
 class Vaisala_converter(converter):
@@ -522,7 +581,15 @@ class Vaisala_converter(converter):
             elif flag == 1:
                 minutes = line[0:4].strip()
                 seconds = line[4:7].strip()
-                time = str(int(minutes) * 60 + int(seconds))
+                try:
+                    time = str(int(minutes) * 60 + int(seconds))
+                except Exception, err:
+                    msg = '''
+                    Cannot convert minutes + seconds to duration due to : %s,
+                    minutes: %s, second: %s
+                    ''' % (str(err), minutes, seconds)
+                    LOGGER.error(msg)
+                    return False, msg
                 cur_line = []
                 counter = counter + 1
                 # Pick and choose required information for payload
@@ -533,7 +600,15 @@ class Vaisala_converter(converter):
             elif flag == 2:
                 minutes = line[0:4].strip()
                 seconds = line[4:7].strip()
-                time = str(int(minutes) * 60 + int(seconds))
+                try:
+                    time = str(int(minutes) * 60 + int(seconds))
+                except Exception, err:
+                    msg = '''
+                    Cannot convert minutes + seconds to duration due to : %s,
+                    minutes: %s, second: %s
+                    ''' % (str(err), minutes, seconds)
+                    LOGGER.error(msg)
+                    return False, msg
                 cur_line = []
                 counter = counter + 1
                 # Pick and choose required information for payload
@@ -555,6 +630,7 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to get Content Table information due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
+            return False, msg
 
         try:
             self.station_info["Data_Generation"] = [
@@ -566,6 +642,7 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to get Data_Generation infomation due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
+            return False, msg
 
         LOGGER.info('Processing platform information')
         try:
@@ -582,6 +659,7 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to process platform infomation due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
         LOGGER.info('Processing Instrument information')
         try:
@@ -616,6 +694,7 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to get Instrument information due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
         LOGGER.info('Processing Location Information')
         try:
@@ -646,6 +725,7 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to get Location information due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
         LOGGER.info('Processing Timestamp information')
         try:
@@ -672,6 +752,7 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to get Timestamp information due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
         LOGGER.info('Processing Flight_Summary information')
         try:
@@ -692,6 +773,9 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to get Flight_Summary information due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
+            return False, msg
+
+        return True, 'Parsing Done'
 
     def creater(self, filename):
         """
@@ -705,6 +789,7 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to create woudc extcsv template due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
+            return False, msg
 
         try:
             LOGGER.info('Adding header/Comments.')
@@ -718,43 +803,86 @@ class Vaisala_converter(converter):
         except Exception, err:
             msg = 'Unable to add header due to: %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Content Table.')
-        ecsv.add_data("CONTENT",
-                      ",".join(self.station_info["Content"]))
+        try:
+            LOGGER.info('Adding Content Table.')
+            ecsv.add_data("CONTENT",
+                          ",".join(self.station_info["Content"]))
+        except Exception, err:
+            msg = 'Unable to add Content table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Data_generation Table.')
-        ecsv.add_data("DATA_GENERATION",
-                      ",".join(self.station_info["Data_Generation"]))
+        try:
+            LOGGER.info('Adding Data_generation Table.')
+            ecsv.add_data("DATA_GENERATION",
+                          ",".join(self.station_info["Data_Generation"]))
+        except Exception, err:
+            msg = 'Unable to add Data_Generation table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        ecsv.add_data("PLATFORM",
-                      ",".join(self.station_info["Platform"]))
+        try:
+            LOGGER.info('Adding Platform Table')
+            ecsv.add_data("PLATFORM",
+                          ",".join(self.station_info["Platform"]))
+        except Exception, err:
+            msg = 'Unable to add Platform table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Instrument Table.')
-        ecsv.add_data("INSTRUMENT",
-                      ",".join(self.station_info["Instrument"]))
+        try:
+            LOGGER.info('Adding Instrument Table.')
+            ecsv.add_data("INSTRUMENT",
+                          ",".join(self.station_info["Instrument"]))
+        except Exception, err:
+            msg = 'Unable to add Instrument table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Location Table.')
-        ecsv.add_data("LOCATION",
-                      ",".join(self.station_info["Location"]))
+        try:
+            LOGGER.info('Adding Location Table.')
+            ecsv.add_data("LOCATION",
+                          ",".join(self.station_info["Location"]))
+        except Exception, err:
+            msg = 'Unable to add Location table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Timestamp Table.')
-        ecsv.add_data("TIMESTAMP",
-                      ",".join(self.station_info["Timestamp"]))
+        try:
+            LOGGER.info('Adding Timestamp Table.')
+            ecsv.add_data("TIMESTAMP",
+                          ",".join(self.station_info["Timestamp"]))
+        except Exception, err:
+            msg = 'Unable to add Timestamp table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Flight_Summary Table.')
-        ecsv.add_data("FLIGHT_SUMMARY",
-                      ",".join(self.station_info["Flight_Summary"]),
-                      field="IntegratedO3,CorrectionCode,"
-                      "SondeTotalO3,CorrectionFactor,TotalO3,"
-                      "WLCode,ObsType,Instrument,Number")
+        try:
+            LOGGER.info('Adding Flight_Summary Table.')
+            ecsv.add_data("FLIGHT_SUMMARY",
+                          ",".join(self.station_info["Flight_Summary"]),
+                          field="IntegratedO3,CorrectionCode,"
+                          "SondeTotalO3,CorrectionFactor,TotalO3,"
+                          "WLCode,ObsType,Instrument,Number")
+        except Exception, err:
+            msg = 'Unable to add Flight_Summary table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        LOGGER.info('Adding Profile Table(Payload).')
-        ecsv.add_data("PROFILE",
-                      ",".join(self.data_truple[0]),
-                      field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
-                      "WindDirection,LevelCode,Duration,GPHeight,"
-                      "RelativeHumidity,SampleTemperature")
+        try:
+            LOGGER.info('Adding Profile Table(Payload).')
+            ecsv.add_data("PROFILE",
+                          ",".join(self.data_truple[0]),
+                          field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
+                          "WindDirection,LevelCode,Duration,GPHeight,"
+                          "RelativeHumidity,SampleTemperature")
+        except Exception, err:
+            msg = 'Unable to add Profile table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+
         x = 1
         LOGGER.info('Insert payload value to Profile Table.')
         while x < len(self.data_truple) - 1:
@@ -762,7 +890,7 @@ class Vaisala_converter(converter):
             ecsv.add_data("PROFILE",
                           ",".join(self.data_truple[x]))
             x = x + 1
-        return ecsv
+        return ecsv, 'Create EXT-CSV object Done.'
 
 
 class BAS_converter(converter):
@@ -828,38 +956,66 @@ class BAS_converter(converter):
 
         self.station_info["Content"] = ["WOUDC", "TotalOzone", "1.0", "1"]
 
-        self.station_info["Data_Generation"] = [
-            time,
-            util.get_config_value(station, 'agency_name'), "1.0",
-            util.get_config_value(station, 'sci_auth')
-        ]
-        # Get all these value from config
-        self.station_info["Platform"] = [util.get_config_value(station,
-                                         'platform_type'),
-                                         util.get_config_value(station,
-                                         'platform_id'),
-                                         util.get_config_value(station,
-                                         'platform_name'),
-                                         util.get_config_value(station,
-                                         'platform_country'),
-                                         util.get_config_value(station,
-                                         'platform_gaw_id')]
+        try:
+            self.station_info["Data_Generation"] = [
+                time,
+                util.get_config_value(station, 'agency_name'), "1.0",
+                util.get_config_value(station, 'sci_auth')
+            ]
+        except Exception, err:
+            msg = 'Unable to get Data_Generation info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        self.station_info["Instrument"] = [util.get_config_value(station,
-                                           'instrument_name'),
-                                           util.get_config_value(station,
-                                           'instrument_model'),
-                                           util.get_config_value(station,
-                                           'instrument_number')]
+        try:
+            # Get all these value from config
+            self.station_info["Platform"] = [util.get_config_value(station,
+                                             'platform_type'),
+                                             util.get_config_value(station,
+                                             'platform_id'),
+                                             util.get_config_value(station,
+                                             'platform_name'),
+                                             util.get_config_value(station,
+                                             'platform_country'),
+                                             util.get_config_value(station,
+                                             'platform_gaw_id')]
+        except Exception, err:
+            msg = 'Unable to get platform information due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        self.station_info["Location"] = [util.get_config_value(station,
-                                         'latitude'),
-                                         util.get_config_value(station,
-                                         'longitude'),
-                                         util.get_config_value(station,
-                                         'height')]
+        try:
+            self.station_info["Instrument"] = [util.get_config_value(station,
+                                               'instrument_name'),
+                                               util.get_config_value(station,
+                                               'instrument_model'),
+                                               util.get_config_value(station,
+                                               'instrument_number')]
+        except Exception, err:
+            msg = 'Unable to get Instrument info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        self.station_info["Timestamp"] = ["+00:00:00", "", ""]
+        try:
+            self.station_info["Location"] = [util.get_config_value(station,
+                                             'latitude'),
+                                             util.get_config_value(station,
+                                             'longitude'),
+                                             util.get_config_value(station,
+                                             'height')]
+        except Exception, err:
+            msg = 'Unable to get Location info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+
+        try:
+            self.station_info["Timestamp"] = ["+00:00:00", "", ""]
+        except Exception, err:
+            msg = 'Unable to get Timestamp info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+
+        return True, 'Parsing Done'
 
     def creater(self):
         """
@@ -870,45 +1026,86 @@ class BAS_converter(converter):
         counter = 0
         dataoutput = []
 
-        for item in self.data_truple:
+        try:
+            for item in self.data_truple:
 
-            if item == ['', '', '', '', '', '', '', '', '']:
-                break
-            hour = float(item[7])
-            span = float(item[8])
+                if item == ['', '', '', '', '', '', '', '', '']:
+                    break
+                hour = float(item[7])
+                span = float(item[8])
 
-            dataoutput.insert(counter, [item[1] + "/" + item[0] + "/" +
-                              str(round(float(item[2]) / 365.25 + 1900)), "",
-                              "", item[3], item[4], str(round(hour + 12, 2)),
-                              str(round(round(hour + 12, 2) + span / 60, 2)),
-                              "", item[5], item[6], ""])
-            counter = counter + 1
+                dataoutput.insert(counter, [item[1] + "/" + item[0] + "/" +
+                                  str(round(float(item[2]) / 365.25 + 1900)),
+                                  "", "", item[3], item[4],
+                                  str(round(hour + 12, 2)),
+                                  str(round(round(hour + 12, 2) + span / 60, 2)),  # noqa
+                                  "", item[5], item[6], ""])
+                counter = counter + 1
+        except Exception, err:
+            msg = 'Unable to process data payload due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
         ecsv = woudc_extcsv.Writer(template=True)
 
-        ecsv.add_data("CONTENT", ",".join(self.station_info["Content"]))
+        try:
+            ecsv.add_data("CONTENT", ",".join(self.station_info["Content"]))
+        except Exception, err:
+            msg = 'Unable to add Content table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        ecsv.add_data("DATA_GENERATION",
-                      ",".join(self.station_info["Data_Generation"]))
+        try:
+            ecsv.add_data("DATA_GENERATION",
+                          ",".join(self.station_info["Data_Generation"]))
+        except Exception, err:
+            msg = 'Unable to add Data_Generation table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        ecsv.add_data("PLATFORM", ",".join(self.station_info["Platform"]))
+        try:
+            ecsv.add_data("PLATFORM", ",".join(self.station_info["Platform"]))
+        except Exception, err:
+            msg = 'Unable to add Platform table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        ecsv.add_data("INSTRUMENT", ",".join(self.station_info["Instrument"]))
+        try:
+            ecsv.add_data("INSTRUMENT", ",".join(self.station_info["Instrument"]))
+        except Exception, err:
+            msg = 'Unable to add Instrument table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        ecsv.add_data("LOCATION", ",".join(self.station_info["Location"]))
+        try:
+            ecsv.add_data("LOCATION", ",".join(self.station_info["Location"]))
+        except Exception, err:
+            msg = 'Unable to add Location table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        ecsv.add_data("TIMESTAMP", ",".join(self.station_info["Timestamp"]))
+        try:
+            ecsv.add_data("TIMESTAMP", ",".join(self.station_info["Timestamp"]))
+        except Exception, err:
+            msg = 'Unable to add TimeStamp table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        ecsv.add_data("PROFILE", ",".join(dataoutput[0]),
-                      field="Date,WLCode,ObsCode,ColumnO3,StdDevO3,UTC_Begin,UTC_End,UTC_Mean,nOBs,mMu,ColumnSO2")  # noqa
-        x = 1
+        try:
+            ecsv.add_data("PROFILE", ",".join(dataoutput[0]),
+                          field="Date,WLCode,ObsCode,ColumnO3,StdDevO3,UTC_Begin,UTC_End,UTC_Mean,nOBs,mMu,ColumnSO2")  # noqa
+            x = 1
+        except Exception, err:
+            msg = 'Unable to add Profile table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
         while x < len(dataoutput):
 
             ecsv.add_data("PROFILE", ",".join(dataoutput[x]))
             x = x + 1
 
-        return ecsv
+        return ecsv, 'Create EXT-CSV object Done.'
 
 
 class AMES_2160_converter(converter):
@@ -1170,10 +1367,10 @@ class AMES_2160_converter(converter):
                                        util.get_config_value("NDACC", "CONTENT.Category"),  # noqa
                                        util.get_config_value("NDACC", "CONTENT.Level"),  # noqa
                                        util.get_config_value("NDACC", "CONTENT.Form")]  # noqa
-
         except Exception, err:
-            msg = 'Unable to get content table information due to: %s' % str(err)  # noqa
+            msg = 'Unable to get Content Info due to : %s' % str(err)
             LOGGER.error(msg)
+            return False, msg
 
         ScientificAuthority = PI
 
@@ -1193,6 +1390,7 @@ class AMES_2160_converter(converter):
         except Exception, err:
             msg = 'Unable to get station metadata from pywoudc due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
+            return False, msg
 
         try:
             # processing station metadata from pywoudc, there might be
@@ -1245,41 +1443,73 @@ class AMES_2160_converter(converter):
             self.station_info['Platform'] = [Type, ID, station,
                                              Country, GAW]
         except Exception, err:
-            msg = 'Unable to process station metadata due to: %s' % str(err)
+            msg = 'Unable to process station/platform metadata due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
+            return False, msg
 
         if 'version' in metadata_dict:
             Version = metadata_dict['version']
         else:
             Version = '1.0'
 
-        self.station_info['Data_Generation'] = [RDATE, Agency,
-                                                Version, ScientificAuthority]
+        try:
+            self.station_info['Data_Generation'] = [RDATE, Agency,
+                                                    Version,
+                                                    ScientificAuthority]
+        except Exception, err:
+            msg = 'Unable to add Data_Generation table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
         Model = 'na'
         Name = 'ECC'
         Number = 'na'
-        if 'inst type' in metadata_dict:
-            Name = metadata_dict['inst type']
-        if 'inst number' in metadata_dict:
-            Model = metadata_dict['inst number'].strip()[0:2]
-            Number = metadata_dict['inst number'].strip()
-        else:
-            LOGGER.info('Collecting instrument information.')
-            if inst_raw is not None:
-                Model = inst_raw[:2].strip()
-                Number = inst_raw.strip()
+        try:
+            if 'inst type' in metadata_dict:
+                Name = metadata_dict['inst type']
+            if 'inst number' in metadata_dict:
+                Model = metadata_dict['inst number'].strip()[0:2]
+                Number = metadata_dict['inst number'].strip()
+            else:
+                LOGGER.info('Collecting instrument information.')
+                if inst_raw is not None:
+                    Model = inst_raw[:2].strip()
+                    Number = inst_raw.strip()
+            self.station_info['Instrument'] = [Name, Model, Number]
+        except Exception, err:
+            msg = 'Unable to get Instrument info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        self.station_info['Instrument'] = [Name, Model, Number]
+        try:
+            self.station_info['TimeStamp'] = ['+00:00:00', DATE, time]
+        except Exception, err:
+            msg = 'Unable to get Timestamp info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        self.station_info['TimeStamp'] = ['+00:00:00', DATE, time]
+        try:
+            self.station_info['Location'] = [Lat, Long, Height]
+        except Exception, err:
+            msg = 'Unable to get Location info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        self.station_info['Location'] = [Lat, Long, Height]
+        try:
+            self.station_info['Auxillary_Data'] = ['', ib1, ib2, '', '', '',
+                                                  '']
+        except Exception, err:
+            msg = 'Unable to get Auxilary info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
-        self.station_info['Auxillary_Data'] = ['', ib1, ib2, '', '', '', '']
-
-        self.station_info['Flight_Summary'] = ['', '', '', '', '', '',
-                                               '', '', '']
+        try:
+            self.station_info['Flight_Summary'] = ['', '', '', '', '', '',
+                                                  '', '', '']
+        except Exception, err:
+            msg = 'Unable to get Flight_Summary info due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
 
         # Pick and choose payload data
         # if user using loads method, file_content is a list,
@@ -1336,7 +1566,9 @@ class AMES_2160_converter(converter):
 
                     self.data_truple.append(temp_data)
 
-    def creater(self):
+        return True, 'Parsing Done'
+
+    def creater(self, filename):
         """
         :return ecsv: EXT-CSV object that contains all tables that
         are required for WOUDC EXT-CSV.
@@ -1355,46 +1587,94 @@ class AMES_2160_converter(converter):
         ecsv.add_comment('\'na\' is indicated for fields where the value'
                          ' was not available at the time generation of '
                          'this file.')
+        ecsv.add_comment('')
+        ecsv.add_comment('Source File: %s' % filename)
+        ecsv.add_comment('')
         ecsv.add_comment('--- NASA-Ames MNAME ---')
         ecsv.add_comment(self.mname)
         ecsv.add_comment('\n')
-        LOGGER.info('Adding Content Table.')
-        ecsv.add_data("CONTENT",
-                      ",".join(self.station_info["Content"])
-                      )
-        LOGGER.info('Adding Data_Generation Table.')
-        ecsv.add_data("DATA_GENERATION",
-                      ",".join(self.station_info["Data_Generation"]))
-        LOGGER.info('Adding Platform Table.')
-        ecsv.add_data("PLATFORM",
-                      ",".join(self.station_info["Platform"]))
-        LOGGER.info('Adding Instrument Table.')
-        ecsv.add_data("INSTRUMENT",
-                      ",".join(self.station_info["Instrument"]))
-        LOGGER.info('Adding Location Table.')
-        ecsv.add_data("LOCATION",
-                      ",".join(self.station_info["Location"]))
-        LOGGER.info('Adding Timestamp Table.')
-        ecsv.add_data("TIMESTAMP",
-                      ",".join(self.station_info["TimeStamp"]))
-        LOGGER.info('Adding Flight_Summary Table.')
-        ecsv.add_data("FLIGHT_SUMMARY",
-                      ",".join(self.station_info["Flight_Summary"]),
-                      field="IntegratedO3,CorrectionCode,"
-                      "SondeTotalO3,CorrectionFactor,TotalO3,"
-                      "WLCode,ObsType,Instrument,Number")
-        LOGGER.info('Adding Aixillary_Data Table.')
-        ecsv.add_data("AIXILLARY_DATA",
-                      ",".join(self.station_info["Auxillary_Data"]),
-                      field="MeteoSonde,ib1,ib2,PumpRate,"
-                      "BackgroundCorr,SampleTemperatureType,"
-                      "MinutesGroundO3")
-        LOGGER.info('Adding Profile Table.')
-        ecsv.add_data("PROFILE",
-                      ",".join(self.data_truple[0]),
-                      field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
-                            "WindDirection,LevelCode,Duration,GPHeight,"
-                            "RelativeHumidity,SampleTemperature")
+        try:
+            LOGGER.info('Adding Content Table.')
+            ecsv.add_data("CONTENT",
+                          ",".join(self.station_info["Content"])
+                          )
+        except Exception, err:
+            msg = 'Unable to add Content Table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+        try:
+            LOGGER.info('Adding Data_Generation Table.')
+            ecsv.add_data("DATA_GENERATION",
+                          ",".join(self.station_info["Data_Generation"]))
+        except Exception, err:
+            msg = 'Unable to add Data_Generation table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+        try:
+            LOGGER.info('Adding Platform Table.')
+            ecsv.add_data("PLATFORM",
+                          ",".join(self.station_info["Platform"]))
+        except Exception, err:
+            msg = 'Unable to get att platform table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+        try:
+            LOGGER.info('Adding Instrument Table.')
+            ecsv.add_data("INSTRUMENT",
+                          ",".join(self.station_info["Instrument"]))
+        except Exception, err:
+            msg = 'Unable to add Instrument table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+        try:
+            LOGGER.info('Adding Location Table.')
+            ecsv.add_data("LOCATION",
+                          ",".join(self.station_info["Location"]))
+        except Exception, err:
+            msg = 'Unable to add Location table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+        try:
+            LOGGER.info('Adding Timestamp Table.')
+            ecsv.add_data("TIMESTAMP",
+                          ",".join(self.station_info["TimeStamp"]))
+        except Exception, err:
+            msg = 'Unable to add Timestamp table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+        try:
+            LOGGER.info('Adding Flight_Summary Table.')
+            ecsv.add_data("FLIGHT_SUMMARY",
+                          ",".join(self.station_info["Flight_Summary"]),
+                          field="IntegratedO3,CorrectionCode,"
+                          "SondeTotalO3,CorrectionFactor,TotalO3,"
+                          "WLCode,ObsType,Instrument,Number")
+        except Exception, err:
+            msg = 'Unable to add Flight_Summary table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+        try:
+            LOGGER.info('Adding Aixillary_Data Table.')
+            ecsv.add_data("AIXILLARY_DATA",
+                          ",".join(self.station_info["Auxillary_Data"]),
+                          field="MeteoSonde,ib1,ib2,PumpRate,"
+                          "BackgroundCorr,SampleTemperatureType,"
+                          "MinutesGroundO3")
+        except Exception, err:
+            msg = 'Unable to add Aixillary table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
+        try:
+            LOGGER.info('Adding Profile Table.')
+            ecsv.add_data("PROFILE",
+                          ",".join(self.data_truple[0]),
+                          field="Pressure,O3PartialPressure,Temperature,"
+                                "WindSpeed,WindDirection,LevelCode,Duration,"
+                                "GPHeight,RelativeHumidity,SampleTemperature")
+        except Exception, err:
+            msg = 'Unable to add Profile table due to : %s' % str(err)
+            LOGGER.error(msg)
+            return False, msg
         x = 1
         LOGGER.info('Inserting payload value.')
         while x < len(self.data_truple):
@@ -1402,7 +1682,7 @@ class AMES_2160_converter(converter):
                           ",".join(self.data_truple[x]))
             x = x + 1
 
-        return ecsv
+        return ecsv, 'Create EXT-CSV object Done.'
 
 
 def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=None):  # noqa
@@ -1431,22 +1711,15 @@ def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=N
         converter = Vaisala_converter()
         LOGGER.info('opening file: %s', inpath)
         with open(inpath) as f:
-            try:
-                LOGGER.info('parsing file.')
-                converter.parser(f, station_name, agency_name, metadata_dict)
-            except Exception, err:
-                if 'referenced before assignment' in str(err):
-                    err = 'Unsupported Vaisala formats.'
-                msg = 'Unable to parse the file due to: %s' % str(err)
+            LOGGER.info('parsing file.')
+            status, msg = converter.parser(f, station_name, agency_name, metadata_dict)  # noqa
+            if status is False:
                 LOGGER.error(msg)
                 raise WOUDCFormatParserError(msg)
-            try:
-                LOGGER.info('create ext-csv table.')
-                ecsv = converter.creater(filename)
-            except Exception, err:
-                msg = 'Unable to create ext-csv table due to: %s' % str(err)
-                LOGGER.error(msg)
-                raise WOUDCFormatCreateExtCsvError(msg)
+            ecsv, msg2 = converter.creater(filename)
+            if ecsv is False:
+                LOGGER.error(msg2)
+                raise WOUDCFormatCreateExtCsvError(msg2)
         return ecsv
 
     elif InFormat.lower() == 'shadoz':
@@ -1454,22 +1727,15 @@ def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=N
         converter = shadoz_converter()
         LOGGER.info('opening file: %s', inpath)
         with open(inpath) as f:
-            try:
-                LOGGER.info('parsing file.')
-                converter.parser(f, station_name, agency_name, metadata_dict)
-            except Exception, err:
-                if 'referenced before assignment' in str(err):
-                    err = 'Unsupported SHADOZ formats.'
-                msg = 'Unable to parse the file due to: %s' % str(err)
+            LOGGER.info('parsing file.')
+            status, msg = converter.parser(f, station_name, agency_name, metadata_dict)  # noqa
+            if status is False:
                 LOGGER.error(msg)
                 raise WOUDCFormatParserError(msg)
-            try:
-                LOGGER.info('create ext-csv table.')
-                ecsv = converter.creater(filename)
-            except Exception, err:
-                msg = 'Unable to create ext-csv table due to: %s' % str(err)
-                LOGGER.error(msg)
-                raise WOUDCFormatCreateExtCsvError(msg)
+            ecsv, msg2 = converter.creater(filename)
+            if ecsv is False:
+                LOGGER.error(msg2)
+                raise WOUDCFormatCreateExtCsvError(msg2)
         return ecsv
 
     elif InFormat.lower() == 'bas':
@@ -1477,22 +1743,15 @@ def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=N
         converter = BAS_converter()
         LOGGER.info('opening file: %s', inpath)
         with open(inpath) as f:
-            try:
-                LOGGER.info('parsing file.')
-                converter.parser(f)
-            except Exception, err:
-                if 'referenced before assignment' in str(err):
-                    err = 'Unsupported BAS formats.'
-                msg = 'Unable to parse the file due to: %s' % str(err)
+            LOGGER.info('parsing file.')
+            status, msg = converter.parser(f)
+            if status is False:
                 LOGGER.error(msg)
                 raise WOUDCFormatParserError(msg)
-            try:
-                LOGGER.info('create ext-csv table.')
-                ecsv = converter.creater()
-            except Exception, err:
-                msg = 'Unable to create ext-csv table due to: %s' % str(err)
-                LOGGER.error(msg)
-                raise WOUDCFormatCreateExtCsvError(msg)
+            ecsv, msg2 = converter.creater()
+            if ecsv is False:
+                LOGGER.error(msg2)
+                raise WOUDCFormatCreateExtCsvError(msg2)
         return ecsv
 
     elif InFormat.lower() == 'ames-2160':
@@ -1500,22 +1759,15 @@ def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=N
         converter = AMES_2160_converter()
         LOGGER.info('opening file: %s', inpath)
         with open(inpath) as f:
-            try:
-                LOGGER.info('parsing file.')
-                converter.parser(f, station_name, agency_name, metadata_dict)
-            except Exception, err:
-                if 'referenced before assignment' in str(err):
-                    err = 'Unsupported AMES formats.'
-                msg = 'Unable to parse the file due to: %s' % str(err)
+            LOGGER.info('parsing file.')
+            status, msg = converter.parser(f, station_name, agency_name, metadata_dict)  # noqa
+            if status is False:
                 LOGGER.error(msg)
                 raise WOUDCFormatParserError(msg)
-            try:
-                LOGGER.info('create ext-csv table.')
-                ecsv = converter.creater()
-            except Exception, err:
-                msg = 'Unable to create ext-csv table due to: %s' % str(err)
-                LOGGER.error(msg)
-                raise WOUDCFormatCreateExtCsvError(msg)
+            ecsv, msg2 = converter.creater(filename)
+            if ecsv is False:
+                LOGGER.error(msg2)
+                raise WOUDCFormatCreateExtCsvError(msg2)
         return ecsv
 
     else:
@@ -1544,85 +1796,57 @@ def loads(InFormat, str_object, station_name=None, agency_name=None, metadata_di
     if InFormat.lower() == 'vaisala':
         LOGGER.info('Initiatlizing Vaisala converter...')
         converter = Vaisala_converter()
-        try:
-            LOGGER.info('parsing file.')
-            converter.parser(str_obj, station_name, agency_name, metadata_dict)
-        except Exception, err:
-            if 'referenced before assignment' in str(err):
-                err = 'Unsupported Vaisala formats.'
-            msg = 'Unable to parse the file due to: %s' % str(err)
+        LOGGER.info('parsing file.')
+        status, msg = converter.parser(str_obj, station_name, agency_name, metadata_dict)  # noqa
+        if status is False:
             LOGGER.error(msg)
             raise WOUDCFormatParserError(msg)
-        try:
-            LOGGER.info('create ext-csv table.')
-            ecsv = converter.creater('N/A')
-        except Exception, err:
-            msg = 'Unable to create ext-csv table due to: %s' % str(err)
-            LOGGER.error(msg)
-            raise WOUDCFormatCreateExtCsvError(msg)
+        ecsv, msg2 = converter.creater('N/A')
+        if ecsv is False:
+            LOGGER.error(msg2)
+            raise WOUDCFormatCreateExtCsvError(msg2)
         return ecsv
 
     elif InFormat.lower() == 'shadoz':
         LOGGER.info('Initiatlizing SHADOZ converter...')
         converter = shadoz_converter()
-        try:
-            LOGGER.info('parsing file.')
-            converter.parser(str_obj, station_name, agency_name, metadata_dict)
-        except Exception, err:
-            if 'referenced before assignment' in str(err):
-                err = 'Unsupported SHADOZ formats.'
-            msg = 'Unable to parse the file due to: %s' % str(err)
+        LOGGER.info('parsing file.')
+        status, msg = converter.parser(str_obj, station_name, agency_name, metadata_dict)  # noqa
+        if status is False:
             LOGGER.error(msg)
             raise WOUDCFormatParserError(msg)
-        try:
-            LOGGER.info('create ext-csv table.')
-            ecsv = converter.creater('N/A')
-        except Exception, err:
-            msg = 'Unable to create ext-csv table due to: %s' % str(err)
-            LOGGER.error(msg)
-            raise WOUDCFormatCreateExtCsvError(msg)
+        ecsv, msg2 = converter.creater('N/A')
+        if ecsv is False:
+            LOGGER.error(msg2)
+            raise WOUDCFormatCreateExtCsvError(msg2)
         return ecsv
 
     elif InFormat.lower() == 'bas':
         LOGGER.info('Initiatlizing BAS converter...')
         converter = BAS_converter()
-        try:
-            LOGGER.info('parsing file.')
-            converter.parser(str_obj)
-        except Exception, err:
-            if 'referenced before assignment' in str(err):
-                err = 'Unsupported BAS formats.'
-            msg = 'Unable to parse the file due to: %s' % str(err)
+        LOGGER.info('parsing file.')
+        status, msg = converter.parser(str_obj)
+        if status is False:
             LOGGER.error(msg)
             raise WOUDCFormatParserError(msg)
-        try:
-            LOGGER.info('create ext-csv table.')
-            ecsv = converter.creater()
-        except Exception, err:
-            msg = 'Unable to create ext-csv table due to: %s' % str(err)
-            LOGGER.error(msg)
-            raise WOUDCFormatCreateExtCsvError(msg)
+        ecsv, msg2 = converter.creater()
+        if ecsv is False:
+            LOGGER.error(msg2)
+            raise WOUDCFormatCreateExtCsvError(msg2)
         return ecsv
 
     elif InFormat.lower() == 'ames-2160':
         LOGGER.info('Initiatlizing AMES-2160 converter...')
         converter = AMES_2160_converter()
-        try:
-            LOGGER.info('parsing file.')
-            converter.parser(str_obj, station_name, agency_name, metadata_dict)
-        except Exception, err:
-            if 'referenced before assignment' in str(err):
-                err = 'Unsupported AMES formats.'
-            msg = 'Unable to parse the file due to: %s' % str(err)
+        LOGGER.info('parsing file.')
+        status, msg = converter.parser(str_obj, station_name, agency_name, metadata_dict)  # noqa
+        if status is False:
             LOGGER.error(msg)
             raise WOUDCFormatParserError(msg)
-        try:
-            LOGGER.info('create ext-csv table.')
-            ecsv = converter.creater()
-        except Exception, err:
-            msg = 'Unable to create ext-csv table due to: %s' % str(err)
-            LOGGER.error(msg)
-            raise WOUDCFormatCreateExtCsvError(msg)
+        ecsv, msg2 = converter.creater('N/A')
+        if ecsv is False:
+            LOGGER.error(msg2)
+            raise WOUDCFormatCreateExtCsvError(msg2)
         return ecsv
 
     else:
