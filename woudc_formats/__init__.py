@@ -520,9 +520,9 @@ class Vaisala_converter(converter):
             elif 'min  s      hPa      gpm     deg C      %       C     C    C/km     m/sO3 [mPa] and Tb [C]' in line:  # noqa
                 flag = 2
             elif flag == 1:
-                min = line[0:4].strip()
+                minutes = line[0:4].strip()
                 seconds = line[4:7].strip()
-                time = str(int(min) * 60 + int(seconds))
+                time = str(int(minutes) * 60 + int(seconds))
                 cur_line = []
                 counter = counter + 1
                 # Pick and choose required information for payload
@@ -531,9 +531,9 @@ class Vaisala_converter(converter):
                             line[20:27].strip(), line[40:44].strip(), '']
                 self.data_truple.insert(counter, cur_line)
             elif flag == 2:
-                min = line[0:4].strip()
+                minutes = line[0:4].strip()
                 seconds = line[4:7].strip()
-                time = str(int(min) * 60 + int(seconds))
+                time = str(int(minutes) * 60 + int(seconds))
                 cur_line = []
                 counter = counter + 1
                 # Pick and choose required information for payload
@@ -595,12 +595,16 @@ class Vaisala_converter(converter):
                 inst_number = metadata_dic['inst number']
 
             if inst_model == '' and inst_number == '':
-                if 'z' == metadata["instrument"][0:1].lower() or 'c' == metadata["instrument"][0:1].lower():  # noqa
-                    inst_model = metadata["instrument"][0:1]  # noqa
-                    inst_number = metadata["instrument"][1:]  # noqa
-                elif re.search('[a-zA-Z]', metadata["instrument"][0:2]):  # noqa:
-                    inst_model = metadata["instrument"][0:2]
-                    inst_number = metadata["instrument"][2:]
+                if 'instrument' in metadata:
+                    if 'z' == metadata["instrument"][0:1].lower() or 'c' == metadata["instrument"][0:1].lower():  # noqa
+                        inst_model = metadata["instrument"][0:1]  # noqa
+                        inst_number = metadata["instrument"][1:]  # noqa
+                    elif re.search('[a-zA-Z]', metadata["instrument"][0:2]):  # noqa:
+                        inst_model = metadata["instrument"][0:2]
+                        inst_number = metadata["instrument"][2:]
+                    else:
+                        inst_model = 'N/A'
+                        inst_number = 'N/A'
                 else:
                     inst_model = 'N/A'
                     inst_number = 'N/A'
