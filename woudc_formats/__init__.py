@@ -227,7 +227,7 @@ class shadoz_converter(converter):
                 metadata_dict["Station Principal Investigator(s)"]
             ]
         except Exception, err:
-            msg = 'Unable to get Data Generation information due to: %s' % str(err)
+            msg = 'Unable to get Data Generation information due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
             return False, msg
 
@@ -287,7 +287,7 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
             metadata_dict["Radiosonde, SN"] = ""
 
-        if 'Background current (uA)' not in  metadata_dict:
+        if 'Background current (uA)' not in metadata_dict:
             metadata_dict["Background current (uA)"] = ''
 
         self.station_info["Auxillary_Data"] = [
@@ -337,7 +337,7 @@ class shadoz_converter(converter):
                 self.station_info["Platform"].append(temp_dict[item])
 
         except Exception, err:
-            msg = 'Unable to process station metadata from pywoudc due to: %s' % str(err)
+            msg = 'Unable to process station metadata from pywoudc due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
             return False, msg
 
@@ -514,9 +514,9 @@ class shadoz_converter(converter):
         try:
             ecsv.add_data("PROFILE",
                           ",".join(self.data_truple[0]),
-                          field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
-                          "WindDirection,LevelCode,Duration,GPHeight,"
-                          "RelativeHumidity,SampleTemperature")
+                          field="Pressure,O3PartialPressure,Temperature,"
+                          "WindSpeed,WindDirection,LevelCode,Duration,"
+                          "GPHeight,RelativeHumidity,SampleTemperature")
         except Exception, err:
             msg = 'Cannot add PROFILE table due to: %s ' % str(err)
             LOGGER.error(msg)
@@ -875,9 +875,9 @@ class Vaisala_converter(converter):
             LOGGER.info('Adding Profile Table(Payload).')
             ecsv.add_data("PROFILE",
                           ",".join(self.data_truple[0]),
-                          field="Pressure,O3PartialPressure,Temperature,WindSpeed,"
-                          "WindDirection,LevelCode,Duration,GPHeight,"
-                          "RelativeHumidity,SampleTemperature")
+                          field="Pressure,O3PartialPressure,Temperature,"
+                          "WindSpeed,WindDirection,LevelCode,Duration,"
+                          "GPHeight,RelativeHumidity,SampleTemperature")
         except Exception, err:
             msg = 'Unable to add Profile table due to : %s' % str(err)
             LOGGER.error(msg)
@@ -1071,7 +1071,8 @@ class BAS_converter(converter):
             return False, msg
 
         try:
-            ecsv.add_data("INSTRUMENT", ",".join(self.station_info["Instrument"]))
+            ecsv.add_data("INSTRUMENT",
+                          ",".join(self.station_info["Instrument"]))
         except Exception, err:
             msg = 'Unable to add Instrument table due to : %s' % str(err)
             LOGGER.error(msg)
@@ -1085,7 +1086,8 @@ class BAS_converter(converter):
             return False, msg
 
         try:
-            ecsv.add_data("TIMESTAMP", ",".join(self.station_info["Timestamp"]))
+            ecsv.add_data("TIMESTAMP",
+                          ",".join(self.station_info["Timestamp"]))
         except Exception, err:
             msg = 'Unable to add TimeStamp table due to : %s' % str(err)
             LOGGER.error(msg)
@@ -1497,7 +1499,7 @@ class AMES_2160_converter(converter):
 
         try:
             self.station_info['Auxillary_Data'] = ['', ib1, ib2, '', '', '',
-                                                  '']
+                                                   '']
         except Exception, err:
             msg = 'Unable to get Auxilary info due to : %s' % str(err)
             LOGGER.error(msg)
@@ -1505,7 +1507,7 @@ class AMES_2160_converter(converter):
 
         try:
             self.station_info['Flight_Summary'] = ['', '', '', '', '', '',
-                                                  '', '', '']
+                                                   '', '', '']
         except Exception, err:
             msg = 'Unable to get Flight_Summary info due to : %s' % str(err)
             LOGGER.error(msg)
