@@ -746,7 +746,7 @@ class Vaisala_converter(converter):
                 time = '%s:00' % time
             self.station_info['Timestamp'] = [
                 UTCOffset,
-                '%s/%s/%s' % (day, month, year),
+                '%s-%s-%s' % (year, month, day),
                 time
             ]
         except Exception, err:
