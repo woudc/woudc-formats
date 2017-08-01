@@ -45,242 +45,296 @@
 # =================================================================
 import logging
 import csv
+from datetime import datetime
+import os
+import re
+import time
+import util
 from StringIO import StringIO
+from util import WOUDCextCSVReader
 
 LOGGER = logging.getLogger(__name__)
 
 
+class Old_TotalOzone_MasterFile(object):
+
+    def __init__(self):
+        pass
+
+    def update_totalOzone_master_file(self, dir, master_file, date, mode, heading):  # noqa
+        """Updates Total Ozone Master File"""
+        # Initialization
+        write_output = 1
+        current_time = (datetime.now()).strftime("%Y_%m_%d")
+        log_file = open('totalOzone_processing_log_%s' % current_time, 'wb')  # noqa
+        data_file = None
+        global tmp_filename
+        tmp_filename = master_file
+        if mode == 'overwrite':
+            data_file = open(tmp_filename, 'wb')
+        else:
+            data_file = open(tmp_filename, 'ab')
+        if heading == 'on':
+            data_file.write('Platform_ID,Year,Month,Day,Start_Hour,Finish_Hour,Wavelength_Pair,Observation_Type,Total_Column_Ozone_Amount,Ozone_Std_Error,Instrument_Type,Instrument_Number\r\n')  # noqa
+
+        # external ftp file
+        global output_file
+        output_file = 'Summaries/TotalOzone/Daily_Summary/o3tot.zip'  # noqa
+
+        # traverse the given directory
+        for dirname, dirnames, filenames in os.walk(dir):
+            dirnames.sort()
+            filenames.sort()
+            for filename in filenames:
+                try:
+                    if ".csv" in filename:
+                        # print filename
+                        file_last_modified_date = time.strftime ("%Y-%m-%d",time.localtime(os.path.getmtime(os.path.join(dirname, filename))))  # noqa
+                        # date comparison
+                        if date is not None and file_last_modified_date <= date:  # noqa
+                            log_file.write('PROCESSED#%s        last modified date: %s\r\n' % ((os.path.join(dirname, filename)), file_last_modified_date))  # noqa
+                            extCSV = WOUDCextCSVReader (os.path.join(dirname, filename))  # noqa
+                        if date is not None and file_last_modified_date > date:
+                            continue
+                        if date is None:
+                            log_file.write('PROCESSED#%s        last modified date: %s\r\n' % ((os.path.join(dirname, filename)), file_last_modified_date))  # noqa
+                            extCSV = WOUDCextCSVReader (os.path.join(dirname, filename))  # noqa
+
+                        # store data into variables
+                        platform_id = '   '
+                        if 'PLATFORM' in extCSV.sections:
+                            p_id = extCSV.sections['PLATFORM']['ID']
+                            if p_id is not None and len(p_id) != 0:
+                                platform_id = p_id
+                                if len(platform_id) == 1:
+                                    platform_id = '00%s' % platform_id
+                                if len(platform_id) == 2:
+                                    platform_id = '0%s' % platform_id
+                        else:
+                            log_file.write('ERROR#E01:Could not find PLATFORM in input file: %s. Data is ignored\r\n' % os.path.join(dirname, filename))  # noqa
+
+                        inst_type_id = '  '
+                        inst_number = '   0'
+                        if 'INSTRUMENT' in extCSV.sections:
+                            inst_name = extCSV.sections['INSTRUMENT']['Name']
+                            inst_model = extCSV.sections['INSTRUMENT']['Model']
+                            if inst_name is not None and len(inst_name) != 0 and inst_name:  # noqa
+                                try:
+                                    inst_type_id  = util.get_config_value('Instrument Type ID', inst_name)  # noqa
+                                    if inst_model == 'Japanese':
+                                        inst_type_id  = util.get_config_value('Instrument Type ID', inst_model+' '+inst_name)  # noqa
+                                    if len(inst_type_id) == 1:
+                                        inst_type_id = ' %s' % inst_type_id
+                                except Exception, err:
+                                    log_file.write('ERROR#E02:There is no instrumet type id for \'%s\' in file %s. Data is ignored\r\n' % (inst_name,os.path.join(dirname, filename)))  # noqa
+                                    write_output = 0
+                                    pass
+                            i_num = extCSV.sections['INSTRUMENT']['Number']
+                            if i_num is not None and len(i_num) != 0:
+                                inst_number = i_num
+                                inst_number = re.sub("^0{1,2}", "", inst_number)  # noqa
+                                if len(inst_number) == 1:
+                                    inst_number = '   %s' % inst_number
+                                if len(inst_number) == 2:
+                                    inst_number = '  %s' % inst_number
+                                if len(inst_number) == 3:
+                                    inst_number = ' %s' % inst_number
+                                if i_num == 'na':
+                                    inst_number = '   0'
+                        else:
+                            log_file.write('ERROR#E03:Could not find INSTRUMENT in input file: %s. Data is ignored\r\n' % os.path.join(dirname, filename))  # noqa
+
+                        if 'DAILY' in extCSV.sections:
+                            data = StringIO((extCSV.sections['DAILY']['_raw']).strip())  # noqa
+                            if data is not None:
+                                try:
+                                    data_rows = csv.reader(data)
+                                    data_rows.next()
+                                except StopIteration:
+                                    log_file.write('ERROR#E04:Error reading DAILY block in file %s. Data is ignored\r\n' % os.path.join(dirname, filename))  # noqa
+                                    write_output = 0
+                                    pass
+                                for row in data_rows:
+                                    year = '    '
+                                    month = '  '
+                                    day = '  '
+                                    UTC_Begin = '  '
+                                    UTC_End = '  '
+                                    WLCode = ' '
+                                    ObsCode = ' '
+                                    ozone_std_error = '   '
+                                    ColumnO3 = '   '
+                                    UTC_Mean = '  '
+                                    nObs = ' '
+                                    if len(row) > 1 and "*" not in row[0]:
+                                        if len(row[0]) != 0:
+                                            year = row[0].split('-')[0]
+                                            month = row[0].split('-')[1]
+                                            day = row[0].split('-')[2]
+                                        if len(row) >= 2:
+                                            if len(row[1]) != 0:
+                                                WLCode = row[1]
+                                                if len(WLCode) > 1:
+                                                    try:
+                                                        WLCode  = util.get_config_value('WLCode', WLCode)  # noqa
+                                                    except Exception, err:
+                                                        log_file.write('ERROR#E05:There is no one character WLCode code for \'%s\' in file %s. Data is ignored\r\n' % (WLCode,os.path.join(dirname, filename)))  # noqa
+                                                        write_output = 0
+                                                        pass
+                                            else:
+                                                if inst_name == 'Dobson':
+                                                    WLCode = util.get_config_value('WLCode', 'Dobson')  # noqa
+                                                if inst_name == 'Brewer':
+                                                    WLCode = util.get_config_value('WLCode', 'Brewer')  # noqa
+                                                if inst_name == 'Filter':
+                                                    WLCode = util.get_config_value('WLCode', 'Filter')  # noqa
+                                                if inst_name == 'Microtops':
+                                                    WLCode = util.get_config_value('WLCode', 'Microtops')  # noqa
+                                        if len(row) >= 3:
+                                            if len(row[2]) != 0:
+                                                ObsCode = row[2]
+                                                if util.is_number(ObsCode) == False and len(ObsCode) != 1:  # noqa
+                                                    try:
+                                                        ObsCode  = util.get_config_value('Obs Code', ObsCode)  # noqa
+                                                    except Exception, err:
+                                                        log_file.write('ERROR#E06:There is no obs code for \'%s\' in file %s. Data is ignored\r\n' % (ObsCode,os.path.join(dirname, filename)))  # noqa
+                                                        write_output = 0
+                                                        pass
+                                            else:
+                                                ObsCode = '9'
+                                        if len(row) >= 4:
+                                            if len(row[3]) != 0 and row[3] != '0.0' and row[3] != '0' and not "-" in row[3]:  # noqa
+                                                try:
+                                                    ColumnO3= '%.0f' % round (float(re.findall("[0-9]*.[0-9]*", row[3])[0]), 0)  # noqa
+                                                    if ColumnO3 == '0':
+                                                        write_output = 0
+                                                except Exception, err:
+                                                    log_file.write('ERROR#E07:Could not round ColumnO3 value of: %s in file %s. Data ignored.\r\n' % (ColumnO3,os.path.join(dirname, filename)))  # noqa
+                                                    write_output = 0
+                                                if len(ColumnO3) == 1:
+                                                    ColumnO3 = '  %s' % ColumnO3  # noqa
+                                                if len(ColumnO3) == 2:
+                                                    ColumnO3 = ' %s' % ColumnO3  # noqa
+                                            else:
+                                                write_output = 0
+                                        if len(row) >= 6:
+                                            if len(row[5]) != 0:
+                                                UTC_Begin = row[5]
+                                                if len(re.findall("[0-9]*", UTC_Begin)[0]) > 2:  # noqa
+                                                    UTC_Begin = UTC_Begin[:2]
+                                                elif "-" in UTC_Begin:
+                                                    if -1.5 >= float(UTC_Begin):  # noqa
+                                                        UTC_Begin = '-0'
+                                                    else:
+                                                        UTC_Begin = '00'
+                                                else:
+                                                    try:
+                                                        UTC_Begin =  '%.0f' % round (float(UTC_Begin), 0)  # noqa
+                                                    except Exception, err:
+                                                        log_file.write('ERROR#E08:Could not round UTC_Begin value of: %s in file %s. Data ignored.\r\n' % (UTC_Begin,os.path.join(dirname, filename)))  # noqa
+                                                        write_output = 0
+                                                    if int(UTC_Begin) in range(10):  # noqa
+                                                        UTC_Begin = '0%s' % UTC_Begin  # noqa
+                                        if len(row) >= 7:
+                                            if len(row[6]) != 0:
+                                                UTC_End = row[6]
+                                                if len(re.findall("[0-9]*", UTC_End)[0]) > 2:  # noqa
+                                                    UTC_End = UTC_End[:2]
+                                                elif "-" in UTC_End:
+                                                    if -1.5 >= float(UTC_End):
+                                                        UTC_End = '-0'
+                                                    else:
+                                                        UTC_End = '00'
+                                                else:
+                                                    try:
+                                                        UTC_End =  '%.0f' % round (float(UTC_End), 0)  # noqa
+                                                    except Exception, err:
+                                                        log_file.write('ERROR#E09:Could not round UTC_End value of: %s in file %s. Data ignored.\r\n' % (UTC_End,os.path.join(dirname, filename)))  # noqa
+                                                        write_output = 0
+                                                    if int(UTC_End) in range(10):  # noqa
+                                                        UTC_End = '0%s' % UTC_End  # noqa
+                                        if len(row) >= 8:
+                                            if len(row[7]) != 0:
+                                                UTC_Mean = row[7]
+                                                if len(row[6]) == 0:
+                                                    UTC_End = UTC_Mean
+                                                    if "-" in UTC_End:
+                                                        if float(UTC_End) <= -1.5 and float(UTC_End) > -2:  # noqa
+                                                            UTC_End = '-0'
+                                                        elif float(UTC_End) <= -1 and float(UTC_End) > -2:  # noqa
+                                                            UTC_End = '00'
+                                                        elif float(UTC_End) >= -1:  # noqa
+                                                            UTC_End = '00'
+                                                        elif float(UTC_End) <= -2 and float(UTC_End) >= -10:  # noqa
+                                                            UTC_End = '-0'
+                                                        elif float(UTC_End) < -10 and float(UTC_End) >= -10.5:  # noqa
+                                                            UTC_End = '-0'
+                                                        else:
+                                                            UTC_End = '-1'
+                                                    else:
+                                                        try:
+                                                            UTC_End =  '%.0f' % round (float(UTC_End), 0)  # noqa
+                                                        except Exception, err:
+                                                            log_file.write('ERROR#E09:Could not round UTC_End value of: %s in file %s. Data ignored.\r\n' % (UTC_End,os.path.join(dirname, filename)))  # noqa
+                                                            write_output = 0
+                                                        if int(UTC_End) in range(10):  # noqa
+                                                            UTC_End = '0%s' % UTC_End  # noqa
+                                        if len(row) >= 9:
+                                            if len(row[8]) != 0 and row[8] != '-':  # noqa
+                                                nObs = row[8]
+                                                if len(nObs) > 2 and not "-" in nObs:  # noqa
+                                                    nObs = nObs[:2]
+                                                if len(row[6]) == 0 and len(row[7]) == 0 and nObs != '00' and row[8] != '0' and row[8] != '-1' and row[8] != '-2' and row[8] != '-3':  # noqa
+                                                    UTC_End = nObs
+                                                    if int(UTC_End) < -3 and int(UTC_End) >= -10:  # noqa
+                                                        UTC_End = '-0'
+                                                    if int(UTC_End) == -11:
+                                                        UTC_End = '-1'
+                                                    if len(UTC_End) == 1:
+                                                        UTC_End = '0%s' % UTC_End  # noqa
+
+                                        # build output string and
+                                        # write/append to file
+                                        if heading == 'off' or heading is None:
+                                            output_line='%s%s%s%s%s%s%s%s%s%s%s%s' % (platform_id,year,month,day,UTC_Begin,UTC_End,WLCode,ObsCode,ColumnO3,ozone_std_error,inst_type_id,inst_number)  # noqa
+                                        else:
+                                            output_line_header='%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' % (platform_id,year,month,day,UTC_Begin,UTC_End,WLCode,ObsCode,ColumnO3,ozone_std_error,inst_type_id,inst_number)  # noqa
+                                        if write_output == 1 and ColumnO3 != '   ' and (heading == 'off' or heading is None):  # noqa
+                                            if len(output_line) == 29:
+                                                data_file.write('%s\r\n' % output_line)  # noqa
+                                            else:
+                                                if len(output_line) > 29:
+                                                    log_file.write('ERROR#E10:This output line: \'%s\' exceeds 29 characters from file %s. Data is ignored.\r\n' % (output_line,os.path.join(dirname, filename)))  # noqa
+                                                else:
+                                                    log_file.write('ERROR#E11:This output line: \'%s\' is less than 29 characters from file %s. Data is ignored.\r\n' % (output_line,os.path.join(dirname, filename)))  # noqa
+                                        if heading == 'on':
+                                            data_file.write('%s\r\n' % output_line_header)  # noqa
+
+                                        write_output = 1
+                        else:
+                            log_file.write('ERROR#E12:Could not find DAILY in input file: %s. Data is ignored\r\n' % os.path.join(dirname, filename))  # noqa
+                except Exception, err:
+                    print str(err)
+                    log_file.write('ERROR: Unable to process file: %s \n' % os.path.join(dirname, filename))  # noqa
+        # data file close
+        data_file.close()
+
+        # zip data file
+        util.zip(os.path.abspath(str(master_file)), "o3tot.zip")
+        tmp_filename = "o3tot.zip"
+
+        # log file close
+        log_file.close()
+        print 'log file is located here: %s' % os.path.abspath('totalOzone_processing_log_%s' % current_time)  # noqa
+
+
+'''
 class TotalOzone_MasterFile(object):
 
     def __init__(self):
         """
         Instantiate totalozone master file object
         """
-
-    '''
-    def sort(self, instance):
-        """
-        :parm instance: An StringIO object that contains information
-        from totalozone.csv file
-        :return Sortedlist: list of a list, contain data in the order
-        that is needed
-        :return title: header of columns, used to reference the index
-        of specific data in list
-
-        Pre-treatment of the data. Use csv.reader method to read
-        data out from StringIO object, go through them one by one
-        to check if key information is missing.
-        Trigger csv_reader method if key information is missing.
-        At the end, all metadata record will be sorted
-        according to station type first, then station id and
-        instance date time.
-
-        """
-
-        unSortedList = []
-        SortedList = []
-        csv_lib = []
-        read = csv.reader(instance)
-
-        try:
-            title = read.next()
-            LOGGER.info('Sorting started...')
-            for row in read:
-                if ''.join(row) == '':
-                    continue
-                if row[18] == '':
-                    LOGGER.info(
-                        'No date, alternate process start for: %s', row[5]
-                    )
-                    #if row[8] == '':
-                    #    row[8] = row[5][63:66]
-                    if row[5] not in csv_lib:
-                    #    content = {}
-                    #    new_row = ['']*30
-                    #    try:
-                    #        content =\
-                    #            self.csv_reader(row[5])
-                        csv_lib.append(row[5])
-                    #    except Exception, err:
-                    #        msg = 'Unable to fill in data for: %s' % row[5]
-                    #        LOGGER.error(msg)
-                    #    if content is None:
-                    #        msg = 'Cannot process extCSV: %s' % row[5]
-                    #        LOGGER.error(msg)
-                    #        continue
-                    #    number = 0
-                    #    while number < len(content['date']):
-                    #        if content['col_ozone'][number] == '':
-                    #            number = number + 1
-                    #            continue
-                    #        new_row[18] = content['date'][number]
-                    #        new_row[19] = content['wl_code'][number]
-                    #        new_row[20] = content['obs_code'][number]
-                    #        new_row[21] = content['col_ozone'][number]
-                    #        new_row[23] = content['utc_begin'][number]
-                    #        new_row[24] = content['utc_end'][number]
-                    #        new_row[11] = content['instrument_name']
-                    #        new_row[13] = content['instrument_number']
-                    #        new_row[25] = content['utc_mean'][number]
-                    #        new_row[26] = content['nObs'][number]
-                    #        new_row[8] = row[8]
-                    #        new_row[7] = 'STN'
-                    #        unSortedList.append(new_row)
-                    #        number = number + 1
-                        continue
-                    else:
-                        LOGGER.info('URL had been already processed.')
-                        continue
-                unSortedList.append(row)
-        except Exception, err:
-            msg = 'Sorting of totalozone data failed due to: %s' % str(err)
-            LOGGER.error(msg)
-            raise err
-
-        return unSortedList, title
-
-    def csv_reader(self, url):
-        """
-        :parm url: url linked to ext-csv file that generated record
-        with missing information
-        :return content: dictionary that contains all the key data
-        that are required to produce masterfile
-
-        Grab data from ext-csv, and return them to sorting method,
-        and those information will be inserted into the list with
-        specific index that represents their meaning.
-        """
-
-        LOGGER.info('Getting extcsv at URL: %s...', url)
-        try:
-            extcsv = util.get_extcsv(url)
-        except Exception, err:
-            msg = 'Unable to get extcsv at URL: %s, due to: %s' %\
-                (url, str(err))
-            LOGGER.error(msg)
-            return None
-        if extcsv is None:
-            return None
-
-        try:
-            daily_raw = extcsv.sections['DAILY']['_raw']
-        except Exception, err:
-            LOGGER.error(str(err))
-            return None
-
-        daily = StringIO(daily_raw)
-        daily_rows = csv.reader(daily)
-        instrument_name = util.get_extcsv_value(
-            extcsv,
-            'INSTRUMENT',
-            'Name',
-            payload=False
-        )
-        instrument_number = util.get_extcsv_value(
-            extcsv,
-            'INSTRUMENT',
-            'Number',
-            payload=False
-        )
-        header = daily_rows.next()
-        column_idex = {}
-        x = 0
-        header_lower = []
-
-        while x < len(header):
-            header_lower.insert(x, header[x].lower())
-            x = x + 1
-        if header_lower[6] == 'utc':
-            header_lower[6] = 'utc_end'
-            header_lower[7] = 'utc_mean'
-            header_lower[8] = 'nobs'
-        column_idex = {
-            'Date': header_lower.index('date'),
-            'ObsCode': header_lower.index('obscode'),
-            'ColumnO3': header_lower.index('columno3'),
-            'WLCode': header_lower.index('wlcode'),
-            'UTC_Begin': header_lower.index('utc_begin'),
-            'UTC_End': header_lower.index('utc_end'),
-            'UTC_Mean': header_lower.index('utc_mean'),
-            'nObs': header_lower.index('nobs')
-            }
-
-        date = []
-        obs_code = []
-        col_ozone = []
-        wl_code = []
-        utc_begin = []
-        utc_end = []
-        utc_mean = []
-        nObs = []
-
-        # Collect data points from the daily table
-        for row in daily_rows:
-            date.append(str(row[column_idex['Date']]))
-            # Get observation code
-            try:
-                obs_code_str = str(row[column_idex['ObsCode']])
-                obs_code.append(obs_code_str)
-            except (IndexError):
-                obs_code.append('')
-
-            try:
-                wl_code_str = str(row[column_idex['WLCode']])
-                wl_code.append(wl_code_str)
-            except (IndexError):
-                wl_code.append('')
-
-            # Get column ozonesonde
-            try:
-                col_ozone_str = row[column_idex['ColumnO3']]
-                col_ozone.append(str(int(round(float(col_ozone_str)))))
-            except (IndexError, ValueError):
-                col_ozone.append('')
-
-            try:
-                utc_begin_str = row[column_idex['UTC_Begin']]
-                if not utc_begin_str == '':
-                    utc_begin_int = str(int(round(float(utc_begin_str))))
-                    utc_begin.append(utc_begin_int)
-                else:
-                    utc_begin.append(utc_begin_str)
-            except (IndexError):
-                utc_begin.append('')
-
-            try:
-                utc_end_str = row[column_idex['UTC_End']]
-                if not utc_end_str == '':
-                    utc_end_int = str(int(round(float(utc_end_str))))
-                    utc_end.append(utc_end_int)
-                else:
-                    utc_end.append(utc_end_str)
-            except (IndexError):
-                utc_end.append('')
-
-            try:
-                utc_mean_str = row[column_idex['UTC_Mean']]
-                if not utc_mean_str == '':
-                    utc_mean_int = str(int(round(float(utc_end_str))))
-                    utc_mean.append(utc_mean_int)
-                else:
-                    utc_mean.append(utc_mean_str)
-            except (IndexError):
-                utc_mean.append('')
-
-            try:
-                nObs_str = str(row[column_idex['nObs']])
-                nObs.append(nObs_str)
-            except (IndexError):
-                nObs.append('')
-
-        content = {'date': date, 'wl_code': wl_code, 'obs_code': obs_code,
-                   'col_ozone': col_ozone, 'utc_begin': utc_begin,
-                   'utc_end': utc_end, 'instrument_name': instrument_name,
-                   'instrument_number': instrument_number,
-                   'utc_mean': utc_mean, 'nObs': nObs}
-
-        return content
-    '''
 
     def execute(self, instance):
         """
@@ -423,10 +477,10 @@ class TotalOzone_MasterFile(object):
                     if L == '':
                         L = ' '
                 NNNN = item[column_idex['Instrument_Number']]
-                '''if SSS == '001':
-                    x = 0
-                    while x == 0:
-                        print NNNN'''
+                # if SSS == '001':
+                #     x = 0
+                #     while x == 0:
+                #         print NNNN
                 if NNNN[0:1] == '0':
                     NNNN = NNNN[1:]
                 if NNNN == '00':
@@ -456,3 +510,4 @@ class TotalOzone_MasterFile(object):
                     continue
                 s.write(line + '\n')
         return s
+'''

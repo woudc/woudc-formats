@@ -43,7 +43,7 @@ Required Arguments:
 
 Optional Arguments:
     --outpath: indicate the output file path, by default is 'INPATH.csv'
-    --statuib: station name in WOUDC
+    --station: station name in WOUDC
     --agency: agency name in WOUDC
     --metadata: a dictionary formatted string containing some specified station metadation information
             ex: {"inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX", "country": "XXX", "GAW_ID": "XXX"}
