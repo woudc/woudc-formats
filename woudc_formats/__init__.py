@@ -1891,9 +1891,8 @@ def dumps(ecsv):
 def cli():
     """command line interface to core functions"""
     import json
-    import os
     import argparse
-    from woudc_formats.totalozone_mf import TotalOzone_MasterFile
+    from woudc_formats.totalozone_mf import Old_TotalOzone_MasterFile
 
     LOGGER = logging.getLogger(__name__)
 
@@ -1987,10 +1986,11 @@ def cli():
     if ARGS.loglevel and ARGS.logfile:
         util.setup_logger(ARGS.logfile, ARGS.loglevel)
 
+    """
     if ARGS.format == 'totalozone-masterfile':
         input_path = ARGS.inpath
         LOGGER.info('Running totalozone masterfile process...')
-        MF = TotalOzone_MasterFile()
+        MF = Old_TotalOzone_MasterFile()
         if input_path.startswith('http'):
             LOGGER.info('Input is totalozone snapshot CSV: %s', input_path)
             try:
@@ -2032,6 +2032,13 @@ def cli():
             LOGGER.error(msg)
         os.remove(os.path.join(output_path, 'totalozone.csv'))
         LOGGER.info('TotalOzone masterfile process complete.')
+    """
+    if ARGS.format == 'totalozone-masterfile':
+        input = ARGS.inpath
+        LOGGER.info('Running totalozone masterfile process...')
+        MF = Old_TotalOzone_MasterFile()
+        output = ARGS.outpath
+        MF.update_totalOzone_master_file(input, output, None, 'overwrite', 'off')  # noqa
     else:
         ecsv = load(ARGS.format, ARGS.inpath, station_name,
                     agency_name, metadata_dict)
