@@ -308,7 +308,7 @@ class shadoz_converter(converter):
         # Station metadata from pywoudc
         header_list = ['type', 'ID', 'station', 'country', 'gaw_id']
         pywoudc_header_list = ['platform_type', 'platform_id', 'platform_name',
-                               'country', 'gaw_id']
+                               'country_code', 'gaw_id']
         temp_dict = {}
         for item in header_list:
             temp_dict[item] = ''
@@ -1426,7 +1426,7 @@ class AMES_2160_converter(converter):
             elif counter == 1:
                 ID = properties_list[0]['platform_id']
                 Type = properties_list[0]['platform_type']
-                Country = properties_list[0]['country']
+                Country = properties_list[0]['country_code']
                 GAW = properties_list[0]['gaw_id']
                 # Lat = str(geometry_list[0][1])
                 # Long = str(geometry_list[0][0])
@@ -1436,7 +1436,7 @@ class AMES_2160_converter(converter):
                     if item['acronym'].lower() == Agency.lower() or item['contributor_name'].lower() == Agency.lower():  # noqa
                         ID = item['platform_id']
                         Type = item['platform_type']
-                        Country = item['country']
+                        Country = item['country_code']
                         GAW = item['gaw_id']
                         # Lat = str(geometry_list[length][1])
                         # Long = str(geometry_list[length][0])

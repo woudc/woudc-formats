@@ -444,7 +444,6 @@ def average(data_list):
 
 
 class WOUDCextCSVReader(object):
-
     def __init__(self, filepath):
         """
         Read WOUDC extCSV file and objectify
@@ -479,7 +478,7 @@ class WOUDCextCSVReader(object):
                 w = csv.writer(buf)
                 for row in c:
                     w.writerow(row)
-                if header in self.sections is False:
+                if header not in self.sections:
                     self.sections[header] = {'_raw': buf.getvalue()}
                 else:
                     self.sections[header] = {'_raw': self.sections[header]['_raw'] + buf.getvalue()[80:]}  # noqa
