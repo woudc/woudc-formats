@@ -147,7 +147,7 @@ class Test(unittest.TestCase):
                          "2.082")
         self.assertEqual(s.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
         self.assertEqual(s.extcsv_ds["PLATFORM$1"]["Country"],
-                         ["Réunion"])
+                         ["REU"])
         self.assertEqual(s.extcsv_ds["DATA_GENERATION$1"]["Agency"],
                          ["U_LaReunion"])
 
@@ -294,7 +294,7 @@ class Test(unittest.TestCase):
                          "3.31")
         self.assertEqual(a.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
         self.assertEqual(a.extcsv_ds["PLATFORM$1"]["Country"],
-                         ["United Kingdom"])
+                         ["GBR"])
         self.assertEqual(a.extcsv_ds["DATA_GENERATION$1"]["Agency"],
                          ["UKMO"])
 
@@ -374,7 +374,7 @@ class Test(unittest.TestCase):
                          "4.8607")
         self.assertEqual(b.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
         self.assertEqual(b.extcsv_ds["PLATFORM$1"]["Country"],
-                         ["United States"])
+                         ["USA"])
         self.assertEqual(b.extcsv_ds["DATA_GENERATION$1"]["Agency"],
                          ["NOAA-CMDL"])
 
