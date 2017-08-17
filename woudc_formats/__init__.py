@@ -344,14 +344,14 @@ class shadoz_converter(converter):
         try:
             # Processing Instrument information by using pywoudc
             LOGGER.info('Processing instrument metadata information.')
-            inst_model = ''
-            inst_number = ''
+            inst_model = 'UNKNOWN'
+            inst_number = 'UNKNOWN'
             if 'inst model' in metadata_dic:
                 inst_model = metadata_dic['inst model']
             if 'inst number' in metadata_dic:
                 inst_number = metadata_dic['inst number']
 
-            if inst_model == '' and inst_number == '':
+            if inst_model == 'UNKNOWN' and inst_number == 'UNKNOWN':
                 if (',' in metadata_dict["Sonde Instrument, SN"] or
                    ' ' in metadata_dict["Sonde Instrument, SN"].strip()):
                     key = re.split(',| ', metadata_dict["Sonde Instrument, SN"].strip())  # noqa
@@ -360,13 +360,13 @@ class shadoz_converter(converter):
                 else:
                     metadata_dict["Sonde Instrument, SN"] = metadata_dict["Sonde Instrument, SN"].strip()  # noqa
                 if metadata_dict["Sonde Instrument, SN"] == bad_value:
-                    inst_model = 'N/A'
-                    inst_number = 'N/A'
+                    inst_model = 'UNKNOWN'
+                    inst_number = 'UNKNOWN'
                 else:
                     # Try to parse instrument data collected from
                     # SHADOZ file
                     if '-' in metadata_dict["Sonde Instrument, SN"]:
-                        inst_model = 'N/A'
+                        inst_model = 'UNKNOWN'
                         inst_number = metadata_dict["Sonde Instrument, SN"]
                     elif 'z' == metadata_dict["Sonde Instrument, SN"][0:1].lower():  # noqa
                         inst_model = metadata_dict["Sonde Instrument, SN"][0:1]  # noqa
@@ -377,7 +377,10 @@ class shadoz_converter(converter):
                     else:
                         inst_model = 'UNKNOWN'
                         inst_number = metadata_dict["Sonde Instrument, SN"]
-
+            if inst_number.strip() == '':
+                inst_number = 'UNKNOWN'
+            if inst_model.strip() == '':
+                inst_model = 'UNKNOWN'
             self.station_info["Instrument"] = [
                 "ECC", inst_model, inst_number]
         except Exception, err:
@@ -681,11 +684,15 @@ class Vaisala_converter(converter):
                         inst_model = metadata["instrument"][0:2]
                         inst_number = metadata["instrument"][2:]
                     else:
-                        inst_model = 'N/A'
-                        inst_number = 'N/A'
+                        inst_model = 'UNKNOWN'
+                        inst_number = 'UNKNOWN'
                 else:
-                    inst_model = 'N/A'
-                    inst_number = 'N/A'
+                    inst_model = 'UNKNOWN'
+                    inst_number = 'UNKNOWN'
+            if inst_model.strip() == '':
+                inst_model = 'UNKNOWN'
+            if inst_number.strip() == '':
+                inst_number = 'UNKNOWN'
             self.station_info['Instrument'] = [
                 'ECC',
                 inst_model,
@@ -1463,9 +1470,9 @@ class AMES_2160_converter(converter):
             LOGGER.error(msg)
             return False, msg
 
-        Model = 'na'
+        Model = 'UNKNOWN'
         Name = 'ECC'
-        Number = 'na'
+        Number = 'UNKNOWN'
         try:
             if 'inst type' in metadata_dict:
                 Name = metadata_dict['inst type']
