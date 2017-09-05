@@ -117,24 +117,33 @@ class shadoz_converter(converter):
                 continue
             elif flag == 1:
                 # Pick and Choose required data from payload
+                payload_list = [x.strip() for x in lines.strip().split(' ')]
+                payload_list[:] = [x for x in payload_list if x.strip() != '']
+                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst else ''
+                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst else ''
+                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers else ''
+                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst else ''
+                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers else ''
+                LevelCode = ''
+                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst else ''
+                GPHeight = payload_list[header_lst.index('km')] if 'km' in header_lst else ''
+                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst else ''
+                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers else ''
                 if "*" in lines[16:26].strip():
-                    self.data_truple.insert(counter, [lines[6:16].strip(),
-                                                      lines[46:56].strip(),
-                                                      lines[26:36].strip(),
-                                                      lines[86:96].strip(),
-                                                      lines[76:86].strip(),
-                                                      lines[16:26].strip(),
-                                                      lines[36:46].strip(),
-                                                      lines[96:106].strip()])
+                    self.data_truple.insert(counter, [Pressure, O3PartialPressure, 
+                                                      Temperature, WindSpeed, 
+                                                      WindDirection, LevelCode, 
+                                                      Duration, GPHeight, 
+                                                      RelativeHumidity, 
+                                                      SampleTemperature])
                     continue
-                self.data_truple.insert(counter, [lines[6:16].strip(),
-                                                  lines[46:56].strip(),
-                                                  lines[26:36].strip(),
-                                                  lines[86:96].strip(),
-                                                  lines[76:86].strip(),
-                                                  lines[16:26].strip(),
-                                                  lines[36:46].strip(),
-                                                  lines[96:106].strip()])
+                
+                self.data_truple.insert(counter, [Pressure, O3PartialPressure, 
+                                                  Temperature, WindSpeed, 
+                                                  WindDirection, LevelCode, 
+                                                  Duration, GPHeight, 
+                                                  RelativeHumidity, 
+                                                  SampleTemperature])
                 counter = counter + 1
 
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
