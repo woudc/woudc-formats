@@ -94,6 +94,8 @@ class shadoz_converter(converter):
         bad_value = ''
 
         # Going through SHADOZ file line by line
+        header_lst = []
+        headers = []
         for lines in file_content:
             if lines == "":
                 continue
@@ -113,12 +115,15 @@ class shadoz_converter(converter):
 
             # Locate payload starting line
             elif "sec     hPa         km       C         %" in lines:
+                header_lst = [v.strip() for v in re.split(r'\s{2,}', lines.strip())]
                 flag = 1
+                continue
+            elif "Time    Press       Alt" in lines:
+                headers = [v.strip() for v in re.split(r'\s{2,}', lines.strip())]
                 continue
             elif flag == 1:
                 # Pick and Choose required data from payload
-                payload_list = [x.strip() for x in lines.strip().split(' ')]
-                payload_list[:] = [x for x in payload_list if x.strip() != '']
+                payload_list = [v.strip() for v in re.split(r'\s{2,}', lines.strip())]
                 Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst else ''
                 O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst else ''
                 Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers else ''
@@ -126,7 +131,7 @@ class shadoz_converter(converter):
                 WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers else ''
                 LevelCode = ''
                 Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst else ''
-                GPHeight = payload_list[header_lst.index('km')] if 'km' in header_lst else ''
+                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst else ''
                 RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst else ''
                 SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers else ''
                 if "*" in lines[16:26].strip():
@@ -300,9 +305,12 @@ class shadoz_converter(converter):
             metadata_dict["Background current (uA)"] = ''
 
         self.station_info["Auxillary_Data"] = [
-            metadata_dict["Radiosonde, SN"], "",
+            metadata_dict["Radiosonde, SN"], 
+            metadata_dict["Sonde/Sage Climatology(1988-2002)"],
             metadata_dict["Background current (uA)"],
-            "", "", "PUMP", ""]
+            metadata_dict["Pump flow rate (sec/100ml)"], 
+            metadata_dict["Applied pump corrections"], "PUMP", 
+            metadata_dict["KI Solution"].replace(',', '')]
 
         try:
             LOGGER.info('Getting station metadata by pywoudc.')
@@ -511,14 +519,19 @@ class shadoz_converter(converter):
             return False, msg
 
         try:
-            LOGGER.info('Adding Aixillary_Data Table.')
-            ecsv.add_data("AIXILLARY_DATA",
+            LOGGER.info('Adding Auxillary_Data Table.')
+            ecsv.add_data("AUXILLARY_DATA",
                           ",".join(self.station_info["Auxillary_Data"]),
-                          field="MeteoSonde,ib1,ib2,PumpRate,"
-                          "BackgroundCorr,SampleTemperatureType,"
-                          "MinutesGroundO3")
+                          field="RadioSonde,Sonde/Sage Climatology,Background Current,PumpRate,"
+                          "BackgroundCorr,PumpType,"
+                          "KI Solution")
+            # ecsv.add_data("AUXILLARY_DATA",
+                          # ",".join(self.station_info["Auxillary_Data"]),
+                          # field="MeteoSonde,ib1,ib2,PumpRate,"
+                          # "BackgroundCorr,SampleTemperatureType,"
+                          # "MinutesGroundO3")
         except Exception, err:
-            msg = 'Unable to add Aixillary table due to : %s' % str(err)
+            msg = 'Unable to add Auxillary table due to : %s' % str(err)
             LOGGER.error(msg)
             return False, msg
 
