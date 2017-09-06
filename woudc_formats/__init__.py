@@ -150,9 +150,7 @@ class shadoz_converter(converter):
                                                   RelativeHumidity, 
                                                   SampleTemperature])
                 counter = counter + 1
-
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
-
         # Getting Information from Config file for CONTENT table
         try:
             LOGGER.info('Getting Content Table information from resource.cfg')
@@ -305,11 +303,11 @@ class shadoz_converter(converter):
             metadata_dict["Background current (uA)"] = ''
 
         self.station_info["Auxillary_Data"] = [
-            metadata_dict["Radiosonde, SN"], 
-            metadata_dict["Sonde/Sage Climatology(1988-2002)"],
-            metadata_dict["Background current (uA)"],
-            metadata_dict["Pump flow rate (sec/100ml)"], 
-            metadata_dict["Applied pump corrections"], "PUMP", 
+            metadata_dict["Radiosonde, SN"].replace(',', ''), 
+            metadata_dict["Sonde/Sage Climatology(1988-2002)"].replace(',', ''),
+            metadata_dict["Background current (uA)"].replace(',', ''),
+            metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''), 
+            metadata_dict["Applied pump corrections"].replace(',', ''), 
             metadata_dict["KI Solution"].replace(',', '')]
 
         try:
@@ -523,7 +521,7 @@ class shadoz_converter(converter):
             ecsv.add_data("AUXILLARY_DATA",
                           ",".join(self.station_info["Auxillary_Data"]),
                           field="RadioSonde,Sonde/Sage Climatology,Background Current,PumpRate,"
-                          "BackgroundCorr,PumpType,"
+                          "BackgroundCorr,"
                           "KI Solution")
             # ecsv.add_data("AUXILLARY_DATA",
                           # ",".join(self.station_info["Auxillary_Data"]),
@@ -547,13 +545,14 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
             return False, msg
 
-        x = 1
+        first_flag = True
         LOGGER.info('Insert payload value to Profile Table.')
-        while x < len(self.data_truple) - 1:
-
-            ecsv.add_data("PROFILE",
-                          ",".join(self.data_truple[x]))
-            x = x + 1
+        for val in self.data_truple:
+            if first_flag:
+                first_flag = False
+            else:
+                ecsv.add_data("PROFILE",
+                          ",".join(val))
         return ecsv, 'Create EXT-CSV object Done.'
 
 
