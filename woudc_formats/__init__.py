@@ -124,16 +124,16 @@ class shadoz_converter(converter):
             elif flag == 1:
                 # Pick and Choose required data from payload
                 payload_list = [v.strip() for v in re.split(r'\s{2,}', lines.strip())]
-                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst else ''
-                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst else ''
-                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers else ''
-                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst else ''
-                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers else ''
+                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst and str(int(round(float(payload_list[header_lst.index('hPa')])))) != bad_value else ''
+                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst and str(int(round(float(payload_list[header_lst.index('mPa')])))) != bad_value else ''
+                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers and str(int(round(float(payload_list[headers.index('Temp')])))) != bad_value else ''
+                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst and str(int(round(float(payload_list[header_lst.index('m/s')])))) != bad_value else ''
+                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers and str(int(round(float(payload_list[headers.index('W Dir')])))) != bad_value else ''
                 LevelCode = ''
-                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst else ''
-                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst else ''
-                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst else ''
-                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers else ''
+                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst and str(int(round(float(payload_list[header_lst.index('sec')])))) != bad_value else ''
+                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst and str(int(round(float(payload_list[header_lst.index('km')])))) != bad_value else ''
+                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst and str(int(round(float(payload_list[header_lst.index('%')])))) != bad_value else ''
+                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers and str(int(round(float(payload_list[headers.index('T Pump')])))) != bad_value else ''
                 if "*" in lines[16:26].strip():
                     self.data_truple.insert(counter, [Pressure, O3PartialPressure, 
                                                       Temperature, WindSpeed, 
@@ -188,7 +188,6 @@ class shadoz_converter(converter):
                 msg = 'Unable to get station name from file due to: %s' % str(err)  # noqa
                 LOGGER.error(msg)
                 station = 'UNKNOWN'
-
         if agency_name is not None:
             Agency = agency_name
         else:
@@ -200,7 +199,6 @@ class shadoz_converter(converter):
                 msg = 'Unable to get agency info from config file due to : %s' % str(err)  # noqa
                 LOGGER.error(msg)
                 Agency = 'N/A'
-
         try:
             # Map Name from SHADOZ file to WOUDC databse's Name
             LOGGER.info('Try to map station name to WOUDC databaset station name.')  # noqa
@@ -212,7 +210,6 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
 
         station = station.decode('UTF-8')
-
         try:
             # Formating date information
             LOGGER.info('Getting Agency information from resource.cfg.')
@@ -232,6 +229,8 @@ class shadoz_converter(converter):
                                              new_date_temp[1],
                                              new_date_temp[0])
                     metadata_dict["SHADOZ format data created"] = new_date
+            if "Reprocessed" in metadata_dict["SHADOZ Version"]:
+                metadata_dict["SHADOZ Version"] = metadata_dict["SHADOZ Version"].strip().split(" ")[0]
             self.station_info["Data_Generation"] = [
                 metadata_dict["SHADOZ format data created"],
                 Agency,
@@ -302,13 +301,30 @@ class shadoz_converter(converter):
         if 'Background current (uA)' not in metadata_dict:
             metadata_dict["Background current (uA)"] = ''
 
-        self.station_info["Auxillary_Data"] = [
-            metadata_dict["Radiosonde, SN"].replace(',', ''), 
-            metadata_dict["Sonde/Sage Climatology(1988-2002)"].replace(',', ''),
-            metadata_dict["Background current (uA)"].replace(',', ''),
-            metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''), 
-            metadata_dict["Applied pump corrections"].replace(',', ''), 
-            metadata_dict["KI Solution"].replace(',', '')]
+        if "Sonde/Sage Climatology(1988-2002)" in metadata_dict:
+            self.station_info["Auxillary_Data"] = [
+                metadata_dict["Radiosonde, SN"].replace(',', ''), 
+                metadata_dict["Sonde/Sage Climatology(1988-2002)"].replace(',', ''),
+                metadata_dict["Background current (uA)"].replace(',', ''),
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''), 
+                metadata_dict["Applied pump corrections"].replace(',', ''), 
+                metadata_dict["KI Solution"].replace(',', '')]
+        elif "Sonde/MLS Climatology(1988-2010)" in metadata_dict:
+            self.station_info["Auxillary_Data"] = [
+                metadata_dict["Radiosonde, SN"].replace(',', ''), 
+                metadata_dict["Sonde/MLS Climatology(1988-2010)"].replace(',', ''),
+                metadata_dict["Background current (uA)"].replace(',', ''),
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''), 
+                metadata_dict["Applied pump corrections"].replace(',', ''), 
+                metadata_dict["KI Solution"].replace(',', '')]
+        else:
+            self.station_info["Auxillary_Data"] = [
+                metadata_dict["Radiosonde, SN"].replace(',', ''), 
+                "",
+                metadata_dict["Background current (uA)"].replace(',', ''),
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''), 
+                metadata_dict["Applied pump corrections"].replace(',', ''), 
+                metadata_dict["KI Solution"].replace(',', '')]
 
         try:
             LOGGER.info('Getting station metadata by pywoudc.')
@@ -520,7 +536,7 @@ class shadoz_converter(converter):
             LOGGER.info('Adding Auxillary_Data Table.')
             ecsv.add_data("AUXILLARY_DATA",
                           ",".join(self.station_info["Auxillary_Data"]),
-                          field="RadioSonde,Sonde/Sage Climatology,Background Current,PumpRate,"
+                          field="RadioSonde,Sonde Climatology,Background Current,PumpRate,"
                           "BackgroundCorr,"
                           "KI Solution")
             # ecsv.add_data("AUXILLARY_DATA",

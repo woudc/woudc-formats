@@ -121,7 +121,7 @@ class Test(unittest.TestCase):
         self.assertTrue("Instrument" in s.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
         self.assertTrue("Number" in s.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
         self.assertTrue("RadioSonde" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
-        self.assertTrue("Sonde/Sage Climatology" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+        self.assertTrue("Sonde Climatology" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
         self.assertTrue("Background Current" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
         self.assertTrue("PumpRate" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
         self.assertTrue("BackgroundCorr" in
