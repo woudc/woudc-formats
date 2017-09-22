@@ -115,39 +115,39 @@ class shadoz_converter(converter):
 
             # Locate payload starting line
             elif "sec     hPa         km       C         %" in lines:
-                header_lst = [v.strip() for v in re.split(r'\s{2,}', lines.strip())]
+                header_lst = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
                 flag = 1
                 continue
             elif "Time    Press       Alt" in lines:
-                headers = [v.strip() for v in re.split(r'\s{2,}', lines.strip())]
+                headers = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
                 continue
             elif flag == 1:
                 # Pick and Choose required data from payload
-                payload_list = [v.strip() for v in re.split(r'\s{2,}', lines.strip())]
-                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst and str(int(round(float(payload_list[header_lst.index('hPa')])))) != bad_value else ''
-                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst and str(int(round(float(payload_list[header_lst.index('mPa')])))) != bad_value else ''
-                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers and str(int(round(float(payload_list[headers.index('Temp')])))) != bad_value else ''
-                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst and str(int(round(float(payload_list[header_lst.index('m/s')])))) != bad_value else ''
-                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers and str(int(round(float(payload_list[headers.index('W Dir')])))) != bad_value else ''
+                payload_list = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
+                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst and str(int(round(float(payload_list[header_lst.index('hPa')])))) != bad_value else '' # noqa
+                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst and str(int(round(float(payload_list[header_lst.index('mPa')])))) != bad_value else '' # noqa
+                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers and str(int(round(float(payload_list[headers.index('Temp')])))) != bad_value else '' # noqa
+                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst and str(int(round(float(payload_list[header_lst.index('m/s')])))) != bad_value else '' # noqa
+                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers and str(int(round(float(payload_list[headers.index('W Dir')])))) != bad_value else '' # noqa
                 LevelCode = ''
-                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst and str(int(round(float(payload_list[header_lst.index('sec')])))) != bad_value else ''
-                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst and str(int(round(float(payload_list[header_lst.index('km')])))) != bad_value else ''
-                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst and str(int(round(float(payload_list[header_lst.index('%')])))) != bad_value else ''
-                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers and str(int(round(float(payload_list[headers.index('T Pump')])))) != bad_value else ''
+                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst and str(int(round(float(payload_list[header_lst.index('sec')])))) != bad_value else '' # noqa
+                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst and str(int(round(float(payload_list[header_lst.index('km')])))) != bad_value else '' # noqa
+                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst and str(int(round(float(payload_list[header_lst.index('%')])))) != bad_value else '' # noqa
+                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers and str(int(round(float(payload_list[headers.index('T Pump')])))) != bad_value else '' # noqa
                 if "*" in lines[16:26].strip():
-                    self.data_truple.insert(counter, [Pressure, O3PartialPressure, 
-                                                      Temperature, WindSpeed, 
-                                                      WindDirection, LevelCode, 
-                                                      Duration, GPHeight, 
-                                                      RelativeHumidity, 
+                    self.data_truple.insert(counter, [Pressure,
+                                                      O3PartialPressure,
+                                                      Temperature, WindSpeed,
+                                                      WindDirection, LevelCode,
+                                                      Duration, GPHeight,
+                                                      RelativeHumidity,
                                                       SampleTemperature])
                     continue
-                
-                self.data_truple.insert(counter, [Pressure, O3PartialPressure, 
-                                                  Temperature, WindSpeed, 
-                                                  WindDirection, LevelCode, 
-                                                  Duration, GPHeight, 
-                                                  RelativeHumidity, 
+                self.data_truple.insert(counter, [Pressure, O3PartialPressure,
+                                                  Temperature, WindSpeed,
+                                                  WindDirection, LevelCode,
+                                                  Duration, GPHeight,
+                                                  RelativeHumidity,
                                                   SampleTemperature])
                 counter = counter + 1
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
@@ -230,7 +230,7 @@ class shadoz_converter(converter):
                                              new_date_temp[0])
                     metadata_dict["SHADOZ format data created"] = new_date
             if "Reprocessed" in metadata_dict["SHADOZ Version"]:
-                metadata_dict["SHADOZ Version"] = metadata_dict["SHADOZ Version"].strip().split(" ")[0]
+                metadata_dict["SHADOZ Version"] = metadata_dict["SHADOZ Version"].strip().split(" ")[0] # noqa
             self.station_info["Data_Generation"] = [
                 metadata_dict["SHADOZ format data created"],
                 Agency,
@@ -303,27 +303,27 @@ class shadoz_converter(converter):
 
         if "Sonde/Sage Climatology(1988-2002)" in metadata_dict:
             self.station_info["Auxillary_Data"] = [
-                metadata_dict["Radiosonde, SN"].replace(',', ''), 
-                metadata_dict["Sonde/Sage Climatology(1988-2002)"].replace(',', ''),
+                metadata_dict["Radiosonde, SN"].replace(',', ''),
+                metadata_dict["Sonde/Sage Climatology(1988-2002)"].replace(',', ''), # noqa
                 metadata_dict["Background current (uA)"].replace(',', ''),
-                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''), 
-                metadata_dict["Applied pump corrections"].replace(',', ''), 
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
+                metadata_dict["Applied pump corrections"].replace(',', ''),
                 metadata_dict["KI Solution"].replace(',', '')]
         elif "Sonde/MLS Climatology(1988-2010)" in metadata_dict:
             self.station_info["Auxillary_Data"] = [
-                metadata_dict["Radiosonde, SN"].replace(',', ''), 
-                metadata_dict["Sonde/MLS Climatology(1988-2010)"].replace(',', ''),
+                metadata_dict["Radiosonde, SN"].replace(',', ''),
+                metadata_dict["Sonde/MLS Climatology(1988-2010)"].replace(',', ''), # noqa
                 metadata_dict["Background current (uA)"].replace(',', ''),
-                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''), 
-                metadata_dict["Applied pump corrections"].replace(',', ''), 
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
+                metadata_dict["Applied pump corrections"].replace(',', ''),
                 metadata_dict["KI Solution"].replace(',', '')]
         else:
             self.station_info["Auxillary_Data"] = [
-                metadata_dict["Radiosonde, SN"].replace(',', ''), 
+                metadata_dict["Radiosonde, SN"].replace(',', ''),
                 "",
                 metadata_dict["Background current (uA)"].replace(',', ''),
-                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''), 
-                metadata_dict["Applied pump corrections"].replace(',', ''), 
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
+                metadata_dict["Applied pump corrections"].replace(',', ''),
                 metadata_dict["KI Solution"].replace(',', '')]
 
         try:
@@ -536,14 +536,9 @@ class shadoz_converter(converter):
             LOGGER.info('Adding Auxillary_Data Table.')
             ecsv.add_data("AUXILLARY_DATA",
                           ",".join(self.station_info["Auxillary_Data"]),
-                          field="RadioSonde,Sonde Climatology,Background Current,PumpRate,"
+                          field="RadioSonde,Sonde Climatology,Background Current,PumpRate," # noqa
                           "BackgroundCorr,"
                           "KI Solution")
-            # ecsv.add_data("AUXILLARY_DATA",
-                          # ",".join(self.station_info["Auxillary_Data"]),
-                          # field="MeteoSonde,ib1,ib2,PumpRate,"
-                          # "BackgroundCorr,SampleTemperatureType,"
-                          # "MinutesGroundO3")
         except Exception, err:
             msg = 'Unable to add Auxillary table due to : %s' % str(err)
             LOGGER.error(msg)
@@ -568,7 +563,7 @@ class shadoz_converter(converter):
                 first_flag = False
             else:
                 ecsv.add_data("PROFILE",
-                          ",".join(val))
+                              ",".join(val))
         return ecsv, 'Create EXT-CSV object Done.'
 
 
