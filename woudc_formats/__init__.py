@@ -1137,15 +1137,24 @@ class AMES_2160_converter(converter):
         Station name and Agency name is required in order to process AMES file
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
-        client = WoudcClient()
+
         counter = 0
         flag = False
-        LOGGER.info('Parsing AMES-2160 file.')
-        LOGGER.info('Collecting header inforamtion')
         flag_first = 0
         time = 'UNKNOWN'
         flag = False
         date_tok = []
+
+        if station_name is None or agency_name is None:
+            msg = 'Station name and agency name required for AMES conversion'
+            LOGGER.error(msg)
+            return False, msg
+
+        client = WoudcClient()
+
+        LOGGER.info('Parsing AMES-2160 file.')
+        LOGGER.info('Collecting header inforamtion')
+
         for line in file_content:
             counter += 1
             # Collecting information line by line
