@@ -121,9 +121,12 @@ class Test(unittest.TestCase):
         self.assertTrue("Instrument" in s.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
         self.assertTrue("Number" in s.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
         self.assertTrue("RadioSonde" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
-        self.assertTrue("Sonde Climatology" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
-        self.assertTrue("Background Current" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
-        self.assertTrue("PumpRate" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+        self.assertTrue("Sonde Climatology" in
+                        s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+        self.assertTrue("Background Current" in
+                        s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+        self.assertTrue("PumpRate" in
+                        s.extcsv_ds["AUXILLARY_DATA$1"].keys())
         self.assertTrue("BackgroundCorr" in
                         s.extcsv_ds["AUXILLARY_DATA$1"].keys())
         self.assertTrue("KI Solution" in
@@ -147,25 +150,24 @@ class Test(unittest.TestCase):
                 if line_counter == 0:
                     payload_val = int(line)
                 if line_counter >= payload_val and line.strip() != '':
-                    payload_list = [v.strip() for v in re.split(r'\s{2,}', line.strip())]
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["Pressure"][counter], payload_list[1])
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["O3PartialPressure"][counter], payload_list[5])
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["Temperature"][counter], payload_list[3])
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["WindSpeed"][counter], payload_list[9])
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["WindDirection"][counter], payload_list[8])
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["Duration"][counter], payload_list[0])
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["GPHeight"][counter], str(float(payload_list[2])*1000))
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["RelativeHumidity"][counter], payload_list[4])
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["SampleTemperature"][counter], payload_list[10])
-                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["LevelCode"][counter], '')
-                    counter+= 1
-                line_counter+= 1
-        for val in ['Pressure','O3PartialPressure', 'Temperature',
+                    payload_list = [v.strip() for v in re.split(r'\s{2,}', line.strip())] # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["Pressure"][counter], payload_list[1]) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["O3PartialPressure"][counter], payload_list[5]) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["Temperature"][counter], payload_list[3]) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["WindSpeed"][counter], payload_list[9]) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["WindDirection"][counter], payload_list[8]) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["Duration"][counter], payload_list[0]) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["GPHeight"][counter], str(float(payload_list[2])*1000)) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["RelativeHumidity"][counter], payload_list[4]) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["SampleTemperature"][counter], payload_list[10]) # noqa
+                    self.assertEqual(s.extcsv_ds["PROFILE$1"]["LevelCode"][counter], '') # noqa
+                    counter += 1
+                line_counter += 1
+        for val in ['Pressure', 'O3PartialPressure', 'Temperature',
                     'WindSpeed', 'WindDirection', 'Duration',
                     'GPHeight', 'RelativeHumidity', 'SampleTemperature',
                     'LevelCode']:
             self.assertEqual(len(s.extcsv_ds["PROFILE$1"][val]), counter)
-        
         self.assertEqual(s.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
         self.assertEqual(s.extcsv_ds["PLATFORM$1"]["Country"],
                          ["REU"])
