@@ -44,7 +44,7 @@
 # =================================================================
 
 import unittest
-from woudc_formats import load
+from woudc_formats import load, WOUDCFormatParserError
 from woudc_formats.util import setup_logger
 import logging
 
@@ -214,6 +214,12 @@ class Test(unittest.TestCase):
         """
         AMES_filename = "tests/le140101.b11"
         AMES_filename2 = 'tests/bu20170609.b18'
+
+        # test for error when station name or agency name is None
+        # (not passed in CLI)
+        with self.assertRaises(WOUDCFormatParserError):
+            a = load('AMES-2160', AMES_filename)
+
         a = load('AMES-2160', AMES_filename, "Lerwick", "UKMO")
         b = load('AMES-2160', AMES_filename2, "Boulder ESRL HQ (CO)",
                  "NOAA-CMDL")
