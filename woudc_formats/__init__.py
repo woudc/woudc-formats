@@ -89,12 +89,18 @@ class shadoz_converter(converter):
         metadata_dict = {}
         client = WoudcClient()
         counter = 0
-        flag = 0
         LOGGER.info('Parsing file, collecting data from file.')
         bad_value = ''
 
         # Going through SHADOZ file line by line
+        header_lst = []
+        headers = []
+        line_counter = 0
+        data_payload_start = None
         for lines in file_content:
+            if line_counter == 0:
+                data_payload_start = int(lines.strip()) + 1
+            line_counter += 1
             if lines == "":
                 continue
             if ":" in lines:
@@ -112,33 +118,42 @@ class shadoz_converter(converter):
                     bad_value = lines[number + 1:].strip()
 
             # Locate payload starting line
-            elif "sec     hPa         km       C         %" in lines:
-                flag = 1
+            elif line_counter == data_payload_start - 1:
+                header_lst = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
                 continue
-            elif flag == 1:
+            elif line_counter == data_payload_start - 2:
+                headers = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
+                continue
+            elif line_counter >= data_payload_start:
                 # Pick and Choose required data from payload
+                payload_list = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
+                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst and str(int(round(float(payload_list[header_lst.index('hPa')])))) != bad_value else '' # noqa
+                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst and str(int(round(float(payload_list[header_lst.index('mPa')])))) != bad_value else '' # noqa
+                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers and str(int(round(float(payload_list[headers.index('Temp')])))) != bad_value else '' # noqa
+                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst and str(int(round(float(payload_list[header_lst.index('m/s')])))) != bad_value else '' # noqa
+                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers and str(int(round(float(payload_list[headers.index('W Dir')])))) != bad_value else '' # noqa
+                LevelCode = ''
+                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst and str(int(round(float(payload_list[header_lst.index('sec')])))) != bad_value else '' # noqa
+                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst and str(int(round(float(payload_list[header_lst.index('km')])))) != bad_value else '' # noqa
+                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst and str(int(round(float(payload_list[header_lst.index('%')])))) != bad_value else '' # noqa
+                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers and str(int(round(float(payload_list[headers.index('T Pump')])))) != bad_value else '' # noqa
                 if "*" in lines[16:26].strip():
-                    self.data_truple.insert(counter, [lines[6:16].strip(),
-                                                      lines[46:56].strip(),
-                                                      lines[26:36].strip(),
-                                                      lines[86:96].strip(),
-                                                      lines[76:86].strip(),
-                                                      lines[16:26].strip(),
-                                                      lines[36:46].strip(),
-                                                      lines[96:106].strip()])
+                    self.data_truple.insert(counter, [Pressure,
+                                                      O3PartialPressure,
+                                                      Temperature, WindSpeed,
+                                                      WindDirection, LevelCode,
+                                                      Duration, GPHeight,
+                                                      RelativeHumidity,
+                                                      SampleTemperature])
                     continue
-                self.data_truple.insert(counter, [lines[6:16].strip(),
-                                                  lines[46:56].strip(),
-                                                  lines[26:36].strip(),
-                                                  lines[86:96].strip(),
-                                                  lines[76:86].strip(),
-                                                  lines[16:26].strip(),
-                                                  lines[36:46].strip(),
-                                                  lines[96:106].strip()])
+                self.data_truple.insert(counter, [Pressure, O3PartialPressure,
+                                                  Temperature, WindSpeed,
+                                                  WindDirection, LevelCode,
+                                                  Duration, GPHeight,
+                                                  RelativeHumidity,
+                                                  SampleTemperature])
                 counter = counter + 1
-
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
-
         # Getting Information from Config file for CONTENT table
         try:
             LOGGER.info('Getting Content Table information from resource.cfg')
@@ -176,7 +191,6 @@ class shadoz_converter(converter):
                 msg = 'Unable to get station name from file due to: %s' % str(err)  # noqa
                 LOGGER.error(msg)
                 station = 'UNKNOWN'
-
         if agency_name is not None:
             Agency = agency_name
         else:
@@ -188,7 +202,6 @@ class shadoz_converter(converter):
                 msg = 'Unable to get agency info from config file due to : %s' % str(err)  # noqa
                 LOGGER.error(msg)
                 Agency = 'N/A'
-
         try:
             # Map Name from SHADOZ file to WOUDC databse's Name
             LOGGER.info('Try to map station name to WOUDC databaset station name.')  # noqa
@@ -200,7 +213,6 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
 
         station = station.decode('UTF-8')
-
         try:
             # Formating date information
             LOGGER.info('Getting Agency information from resource.cfg.')
@@ -220,6 +232,8 @@ class shadoz_converter(converter):
                                              new_date_temp[1],
                                              new_date_temp[0])
                     metadata_dict["SHADOZ format data created"] = new_date
+            if "Reprocessed" in metadata_dict["SHADOZ Version"]:
+                metadata_dict["SHADOZ Version"] = metadata_dict["SHADOZ Version"].strip().split(" ")[0] # noqa
             self.station_info["Data_Generation"] = [
                 metadata_dict["SHADOZ format data created"],
                 Agency,
@@ -290,10 +304,30 @@ class shadoz_converter(converter):
         if 'Background current (uA)' not in metadata_dict:
             metadata_dict["Background current (uA)"] = ''
 
-        self.station_info["Auxillary_Data"] = [
-            metadata_dict["Radiosonde, SN"], "",
-            metadata_dict["Background current (uA)"],
-            "", "", "PUMP", ""]
+        if "Sonde/Sage Climatology(1988-2002)" in metadata_dict:
+            self.station_info["Auxillary_Data"] = [
+                metadata_dict["Radiosonde, SN"].replace(',', ''),
+                metadata_dict["Sonde/Sage Climatology(1988-2002)"].replace(',', ''), # noqa
+                metadata_dict["Background current (uA)"].replace(',', ''),
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
+                metadata_dict["Applied pump corrections"].replace(',', ''),
+                metadata_dict["KI Solution"].replace(',', '')]
+        elif "Sonde/MLS Climatology(1988-2010)" in metadata_dict:
+            self.station_info["Auxillary_Data"] = [
+                metadata_dict["Radiosonde, SN"].replace(',', ''),
+                metadata_dict["Sonde/MLS Climatology(1988-2010)"].replace(',', ''), # noqa
+                metadata_dict["Background current (uA)"].replace(',', ''),
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
+                metadata_dict["Applied pump corrections"].replace(',', ''),
+                metadata_dict["KI Solution"].replace(',', '')]
+        else:
+            self.station_info["Auxillary_Data"] = [
+                metadata_dict["Radiosonde, SN"].replace(',', ''),
+                "",
+                metadata_dict["Background current (uA)"].replace(',', ''),
+                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
+                metadata_dict["Applied pump corrections"].replace(',', ''),
+                metadata_dict["KI Solution"].replace(',', '')]
 
         try:
             LOGGER.info('Getting station metadata by pywoudc.')
@@ -502,14 +536,14 @@ class shadoz_converter(converter):
             return False, msg
 
         try:
-            LOGGER.info('Adding Aixillary_Data Table.')
-            ecsv.add_data("AIXILLARY_DATA",
+            LOGGER.info('Adding Auxillary_Data Table.')
+            ecsv.add_data("AUXILLARY_DATA",
                           ",".join(self.station_info["Auxillary_Data"]),
-                          field="MeteoSonde,ib1,ib2,PumpRate,"
-                          "BackgroundCorr,SampleTemperatureType,"
-                          "MinutesGroundO3")
+                          field="RadioSonde,Sonde Climatology,Background Current,PumpRate," # noqa
+                          "BackgroundCorr,"
+                          "KI Solution")
         except Exception, err:
-            msg = 'Unable to add Aixillary table due to : %s' % str(err)
+            msg = 'Unable to add Auxillary table due to : %s' % str(err)
             LOGGER.error(msg)
             return False, msg
 
@@ -525,13 +559,14 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
             return False, msg
 
-        x = 1
+        first_flag = True
         LOGGER.info('Insert payload value to Profile Table.')
-        while x < len(self.data_truple) - 1:
-
-            ecsv.add_data("PROFILE",
-                          ",".join(self.data_truple[x]))
-            x = x + 1
+        for val in self.data_truple:
+            if first_flag:
+                first_flag = False
+            else:
+                ecsv.add_data("PROFILE",
+                              ",".join(val))
         return ecsv, 'Create EXT-CSV object Done.'
 
 
