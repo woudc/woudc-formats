@@ -89,14 +89,18 @@ class shadoz_converter(converter):
         metadata_dict = {}
         client = WoudcClient()
         counter = 0
-        flag = 0
         LOGGER.info('Parsing file, collecting data from file.')
         bad_value = ''
 
         # Going through SHADOZ file line by line
         header_lst = []
         headers = []
+        line_counter = 0
+        data_payload_start = None
         for lines in file_content:
+            if line_counter == 0:
+                data_payload_start = int(lines.strip()) + 1
+            line_counter += 1
             if lines == "":
                 continue
             if ":" in lines:
@@ -114,14 +118,13 @@ class shadoz_converter(converter):
                     bad_value = lines[number + 1:].strip()
 
             # Locate payload starting line
-            elif "sec     hPa         km       C         %" in lines:
+            elif line_counter == data_payload_start - 1:
                 header_lst = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
-                flag = 1
                 continue
-            elif "Time    Press       Alt" in lines:
+            elif line_counter == data_payload_start - 2:
                 headers = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
                 continue
-            elif flag == 1:
+            elif line_counter >= data_payload_start:
                 # Pick and Choose required data from payload
                 payload_list = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
                 Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst and str(int(round(float(payload_list[header_lst.index('hPa')])))) != bad_value else '' # noqa
