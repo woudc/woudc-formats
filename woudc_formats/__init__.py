@@ -99,7 +99,12 @@ class shadoz_converter(converter):
         data_payload_start = None
         for lines in file_content:
             if line_counter == 0:
-                data_payload_start = int(lines.strip()) + 1
+                try:
+                    data_payload_start = int(lines.strip()) + 1
+                except Exception, err:
+                    msg = 'Unable get payload start due to: %s. Line is: %s' % (str(err), lines.strip())  # noqa
+                    LOGGER.error(msg)
+                    return False, msg
             line_counter += 1
             if lines == "":
                 continue
@@ -127,16 +132,16 @@ class shadoz_converter(converter):
             elif line_counter >= data_payload_start:
                 # Pick and Choose required data from payload
                 payload_list = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
-                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst and str(int(round(float(payload_list[header_lst.index('hPa')])))) != bad_value else '' # noqa
-                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst and str(int(round(float(payload_list[header_lst.index('mPa')])))) != bad_value else '' # noqa
-                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers and str(int(round(float(payload_list[headers.index('Temp')])))) != bad_value else '' # noqa
-                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst and str(int(round(float(payload_list[header_lst.index('m/s')])))) != bad_value else '' # noqa
-                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers and str(int(round(float(payload_list[headers.index('W Dir')])))) != bad_value else '' # noqa
+                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst and '*' not in payload_list[header_lst.index('hPa')] and str(int(round(float(payload_list[header_lst.index('hPa')])))) != bad_value else '' # noqa
+                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst and '*' not in payload_list[header_lst.index('mPa')] and str(int(round(float(payload_list[header_lst.index('mPa')])))) != bad_value else '' # noqa
+                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers and '*' not in payload_list[headers.index('Temp')] and str(int(round(float(payload_list[headers.index('Temp')])))) != bad_value else '' # noqa
+                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst and '*' not in payload_list[header_lst.index('m/s')] and str(int(round(float(payload_list[header_lst.index('m/s')])))) != bad_value else '' # noqa
+                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers and '*' not in payload_list[headers.index('W Dir')] and str(int(round(float(payload_list[headers.index('W Dir')])))) != bad_value else '' # noqa
                 LevelCode = ''
-                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst and str(int(round(float(payload_list[header_lst.index('sec')])))) != bad_value else '' # noqa
-                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst and str(int(round(float(payload_list[header_lst.index('km')])))) != bad_value else '' # noqa
-                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst and str(int(round(float(payload_list[header_lst.index('%')])))) != bad_value else '' # noqa
-                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers and str(int(round(float(payload_list[headers.index('T Pump')])))) != bad_value else '' # noqa
+                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst and '*' not in payload_list[header_lst.index('sec')] and str(int(round(float(payload_list[header_lst.index('sec')])))) != bad_value else '' # noqa
+                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst and '*' not in payload_list[header_lst.index('km')] and str(int(round(float(payload_list[header_lst.index('km')])))) != bad_value else '' # noqa
+                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst and '*' not in payload_list[header_lst.index('%')] and str(int(round(float(payload_list[header_lst.index('%')])))) != bad_value else '' # noqa
+                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers and '*' not in payload_list[headers.index('T Pump')] and str(int(round(float(payload_list[headers.index('T Pump')])))) != bad_value else '' # noqa
                 if "*" in lines[16:26].strip():
                     self.data_truple.insert(counter, [Pressure,
                                                       O3PartialPressure,
