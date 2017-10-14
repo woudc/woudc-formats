@@ -1170,7 +1170,7 @@ class AMES_2160_converter(converter):
         self.station_info = {}
         self.mname = ''
 
-    def parser(self, file_content, station_name, agency_name, metadata_dict):
+    def parser(self, file_content, agency_name, metadata_dict):
         """
         :parm file_content: opened file object for AMES file.
         :parm metadata_dict: dictionary stores user inputed station metadata
@@ -1184,9 +1184,10 @@ class AMES_2160_converter(converter):
         time = 'UNKNOWN'
         flag = False
         date_tok = []
+        platform_name = None
 
-        if station_name is None or agency_name is None:
-            msg = 'Station name and agency name required for AMES conversion'
+        if agency_name is None:
+            msg = 'Agency name required for AMES conversion'
             LOGGER.error(msg)
             return False, msg
 
@@ -1205,9 +1206,10 @@ class AMES_2160_converter(converter):
                 # Only AMES from ndacc with header contains time
                 # information(hh:mm:ss)
                 if '2160' in line:
-                    station = station_name
-                    station = station.decode('UTF-8')
                     flag = True
+                    station_location = int(line.split()[0])
+                    if flag_first:
+                        station_location += 1
                     continue
                 else:
                     if flag_first == 1:
@@ -1294,6 +1296,14 @@ class AMES_2160_converter(converter):
                 # Some AMES file use () rather than [], change it
                 line = line.replace('(', '[')
                 line = line.replace(')', ']')
+                if counter == station_location:
+                    bad_station_name = line.strip()
+                    try:
+                        platform_name = util.get_config_value('AMES',
+                                                              bad_station_name)
+                    except Exception, err:
+                        LOGGER.info('Could not get platform name from config due to %s' % str(err)) # noqa
+                        return False, str(err)
                 counter += 1
                 if ('Time after launch' in line or
                    'Pressure at observation' in line):
@@ -1464,12 +1474,12 @@ class AMES_2160_converter(converter):
             for row in station_metadata['features']:
                 properties = row['properties']
                 # geometry = row['geometry']['coordinates']
-                if station.lower() == properties['platform_name'].lower():
+                if platform_name.lower() == properties['platform_name'].lower(): # noqa
                     properties_list.append(properties)
                     # geometry_list.append(geometry)
                     counter = counter + 1
             if counter == 0:
-                LOGGER.warning('Unable to find stationi: %s, start lookup process.') % station  # noqa
+                LOGGER.warning('Unable to find stationi: %s, start lookup process.') % platform_name  # noqa
                 try:
                     ID = 'na'
                     Type = 'unknown'
@@ -1498,7 +1508,7 @@ class AMES_2160_converter(converter):
                         # Long = str(geometry_list[length][0])
                     length = length + 1
 
-            self.station_info['Platform'] = [Type, ID, station,
+            self.station_info['Platform'] = [Type, ID, platform_name,
                                              Country, GAW]
         except Exception, err:
             msg = 'Unable to process station/platform metadata due to: %s' % str(err)  # noqa
@@ -1527,11 +1537,15 @@ class AMES_2160_converter(converter):
                 Name = metadata_dict['inst type']
             if 'inst number' in metadata_dict:
                 Model = metadata_dict['inst number'].strip()[0:2]
+                if re.search('[a-zA-Z]', Model) is None:
+                    Model = 'UNKNOWN'
                 Number = metadata_dict['inst number'].strip()
             else:
                 LOGGER.info('Collecting instrument information.')
                 if inst_raw is not None:
                     Model = inst_raw[:2].strip()
+                    if re.search('[a-zA-Z]', Model) is None:
+                        Model = 'UNKNOWN'
                     Number = inst_raw.strip()
             self.station_info['Instrument'] = [Name, Model, Number]
         except Exception, err:
@@ -1818,7 +1832,7 @@ def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=N
         LOGGER.info('opening file: %s', inpath)
         with open(inpath) as f:
             LOGGER.info('parsing file.')
-            status, msg = converter.parser(f, station_name, agency_name, metadata_dict)  # noqa
+            status, msg = converter.parser(f, agency_name, metadata_dict)  # noqa
             if status is False:
                 LOGGER.error(msg)
                 raise WOUDCFormatParserError(msg)

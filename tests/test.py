@@ -238,14 +238,13 @@ class Test(unittest.TestCase):
         AMES_filename = "tests/le140101.b11"
         AMES_filename2 = 'tests/bu20170609.b18'
 
-        # test for error when station name or agency name is None
+        # test for error when agency name is None
         # (not passed in CLI)
         with self.assertRaises(WOUDCFormatParserError):
             a = load('AMES-2160', AMES_filename)
 
-        a = load('AMES-2160', AMES_filename, "Lerwick", "UKMO")
-        b = load('AMES-2160', AMES_filename2, "Boulder ESRL HQ (CO)",
-                 "NOAA-CMDL")
+        a = load('AMES-2160', AMES_filename, agency_name="UKMO")
+        b = load('AMES-2160', AMES_filename2, agency_name="NOAA-CMDL")
 
         self.assertTrue("CONTENT$1" in a.extcsv_ds.keys())
         self.assertTrue("DATA_GENERATION$1" in a.extcsv_ds.keys())
