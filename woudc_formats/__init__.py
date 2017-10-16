@@ -1181,7 +1181,7 @@ class AMES_2160_converter(converter):
         counter = 0
         flag = False
         flag_first = 0
-        time = 'UNKNOWN'
+        time = ''
         flag = False
         date_tok = []
         platform_name = None
