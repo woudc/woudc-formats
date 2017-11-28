@@ -130,7 +130,7 @@ class shadoz_converter(converter):
             if '*' in GPHeight or str(int(round(float(GPHeight)))) == bad_value: # noqa
                 GPHeight = ''
             else:
-                GPHeight = str(float(GPHeight)*1000)
+                GPHeight = str(float(GPHeight) * 1000)
             RelativeHumidity = format(row[s.get_data_index('RH', '%')], '.3f') # noqa
             if '*' in RelativeHumidity or str(int(round(float(RelativeHumidity)))) == bad_value: # noqa
                 RelativeHumidity = ''
