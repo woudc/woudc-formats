@@ -1,2 +1,3 @@
 pywoudc
 woudc-extcsv
+pyshadoz
