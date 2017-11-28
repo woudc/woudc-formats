@@ -127,7 +127,7 @@ def extract_data(filename, path):
 def zip_file(output, outpath, zipfilename):
     try:
         compression = zipfile.ZIP_DEFLATED
-    except:
+    except Exception as err:
         compression = zipfile.ZIP_STORED
     if not os.path.isdir(outpath):
         os.mkdir(outpath)
@@ -255,7 +255,7 @@ def sort_table(table, cols):
 def zip(in_filename, out_filename):
     try:
         compression = zipfile.ZIP_DEFLATED
-    except:
+    except Exception as err:
         compression = zipfile.ZIP_STORED
 
     zf = zipfile.ZipFile(out_filename, mode='w')
@@ -274,7 +274,7 @@ def unzip(filename, dir_path=None):
         tar = tarfile.open(os.path.join(dir_path, filename))
         for item in tar:
             tar.extract(item, os.path.join(dir_path, filename[0:filename.index('.')]))  # noqa
-    except:
+    except Exception as err:
         print 'ERROR: Unable to unzip %s!' % filename
     return
 
@@ -386,7 +386,7 @@ def print_csx(where, csx, dirname=None, host=None):
                     else:
                         out_file.write('* %s' % comment)
                 out_file.write('\n')
-        except:
+        except Exception as err:
             print 'ERROR: Unable to create output extended CSV file %s' % (os.path.join(dirname, csx.get_filename()))  # noqa
 
         # close file
@@ -423,7 +423,7 @@ def print_csx(where, csx, dirname=None, host=None):
                     else:
                         ftp_file.write('* %s' % comment)
                 ftp_file.write('\n')
-        except:
+        except Exception as err:
             print 'ERROR: Unable to write file %s to WOUDC FTP.' % (host.path.join(dirname, csx.get_filename()))  # noqa
 
         # close file
@@ -470,7 +470,7 @@ class WOUDCextCSVReader(object):
                     try:
                         self.sections[header][field] = values[i]
                         i += 1
-                    except:
+                    except Exception as err:
                         self.sections[header][field] = None
                         # print 'ERROR: corrupt format.  Section: %s.  Skipping' % header  # noqa
             else:  # payload
