@@ -102,9 +102,7 @@ class shadoz_converter(converter):
 
         bad_value = str(s.metadata['Missing or bad values'])
 
-        # payload stuff
-        # Ask Tom about errors with get data and get data index
-        # check each value in each line for a *
+        # get payload data
         counter = 0
         for row in s.get_data():
             star_flag = False
@@ -153,7 +151,6 @@ class shadoz_converter(converter):
                                                   RelativeHumidity,
                                                   SampleTemperature])
                 counter += 1
-        # end of payload stuff
 
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
         # Getting Information from Config file for CONTENT table
@@ -250,7 +247,7 @@ class shadoz_converter(converter):
         else:
             launch_time = str(s.metadata['Launch Time (UT)'])
 
-        self.station_info["Timestamp"] = ['+00:00:00',
+        self.station_info['Timestamp'] = ['+00:00:00',
                                           launch_date,
                                           launch_time]
 
