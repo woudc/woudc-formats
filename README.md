@@ -16,12 +16,13 @@ Writers: WOUDC totalozone [daily summary](http://woudc.org/archive/Summaries/Tot
 ### Installation Instructions
 
 ## Requirements
-woudc-formats requires Python 2.7, [pywoudc](https://github.com/woudc/pywoudc) and [woudc-extcsv](https://github.com/woudc/woudc-extcsv)
+woudc-formats requires Python 2.7, [pywoudc](https://github.com/woudc/pywoudc), [pyshadoz](https://github.com/WMO-ET-WDC/pyshadoz), and [woudc-extcsv](https://github.com/woudc/woudc-extcsv)
 
 ## Dependencies
 See `requirements.txt`
 - [pywoudc](https://github.com/woudc/pywoudc)
 - [woudc-extcsv](https://github.com/woudc/woudc-extcsv)
+- [pyshadoz](https://github.com/WMO-ET-WDC/pyshadoz)
 
 ## Setup
 ```bash
