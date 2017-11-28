@@ -50,6 +50,7 @@ from pywoudc import WoudcClient
 import woudc_extcsv
 from woudc_formats import util
 import ntpath
+from pyshadoz import SHADOZ
 
 __version__ = "0.1.0"
 
@@ -82,116 +83,102 @@ class shadoz_converter(converter):
     def parser(self, file_content, station_name, agency_name, metadata_dic):
         # Place left for time and define logging
         """
-        :parm file_content: opened file object for SHADOZ file.
-        :parm metadata_dic: user specified metadata information
+        :param file_content: opened file object for SHADOZ file.
+        :param metadata_dic: user specified metadata information
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
-        metadata_dict = {}
+
         client = WoudcClient()
-        counter = 0
         LOGGER.info('Parsing file, collecting data from file.')
         bad_value = ''
+        s = SHADOZ(file_content)
 
-        # Going through SHADOZ file line by line
-        header_lst = []
-        headers = []
-        line_counter = 0
-        data_payload_start = None
-        for lines in file_content:
-            if line_counter == 0:
-                try:
-                    data_payload_start = int(lines.strip()) + 1
-                except Exception, err:
-                    msg = 'Unable get payload start due to: %s. Line is: %s' % (str(err), lines.strip())  # noqa
-                    LOGGER.error(msg)
-                    return False, msg
-            line_counter += 1
-            if lines == "":
-                continue
-            if ":" in lines:
-                # Each line will be seperated by :, as header and value
-                number = lines.index(":")
-                key = lines[0:number].strip()
-                metadata_dict[key] = lines[number + 1:].strip()
-                self.ori.append(lines.strip('\n'))
+        # copy original header to be used as comment
+        for key, value in s.metadata.items():
+            self.ori.append(key + ' : ' + str(value))
 
-                # Variation of the line header
-                if ('SHADOZ Principal Investigator' in lines or
-                   'Station Principal Investigator' in lines):
-                    self.inv.append(lines.strip('\n'))
-                elif 'Missing or bad values' in lines:
-                    bad_value = lines[number + 1:].strip()
+        self.inv.append('SHADOZ Principal Investigator    : ' + s.metadata['SHADOZ Principal Investigator']) # noqa
+        self.inv.append('Station Principal Investigator(s): ' + s.metadata['Station Principal Investigator(s)']) # noqa
 
-            # Locate payload starting line
-            elif line_counter == data_payload_start - 1:
-                header_lst = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
-                continue
-            elif line_counter == data_payload_start - 2:
-                headers = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
-                continue
-            elif line_counter >= data_payload_start:
-                # Pick and Choose required data from payload
-                payload_list = [v.strip() for v in re.split(r'\s{2,}', lines.strip())] # noqa
-                Pressure = payload_list[header_lst.index('hPa')] if 'hPa' in header_lst and '*' not in payload_list[header_lst.index('hPa')] and str(int(round(float(payload_list[header_lst.index('hPa')])))) != bad_value else '' # noqa
-                O3PartialPressure = payload_list[header_lst.index('mPa')] if 'mPa' in header_lst and '*' not in payload_list[header_lst.index('mPa')] and str(int(round(float(payload_list[header_lst.index('mPa')])))) != bad_value else '' # noqa
-                Temperature = payload_list[headers.index('Temp')] if 'Temp' in headers and '*' not in payload_list[headers.index('Temp')] and str(int(round(float(payload_list[headers.index('Temp')])))) != bad_value else '' # noqa
-                WindSpeed = payload_list[header_lst.index('m/s')] if 'm/s' in header_lst and '*' not in payload_list[header_lst.index('m/s')] and str(int(round(float(payload_list[header_lst.index('m/s')])))) != bad_value else '' # noqa
-                WindDirection = payload_list[headers.index('W Dir')] if 'W Dir' in headers and '*' not in payload_list[headers.index('W Dir')] and str(int(round(float(payload_list[headers.index('W Dir')])))) != bad_value else '' # noqa
-                LevelCode = ''
-                Duration = payload_list[header_lst.index('sec')] if 'sec' in header_lst and '*' not in payload_list[header_lst.index('sec')] and str(int(round(float(payload_list[header_lst.index('sec')])))) != bad_value else '' # noqa
-                GPHeight = str(float(payload_list[header_lst.index('km')])*1000) if 'km' in header_lst and '*' not in payload_list[header_lst.index('km')] and str(int(round(float(payload_list[header_lst.index('km')])))) != bad_value else '' # noqa
-                RelativeHumidity = payload_list[header_lst.index('%')] if '%' in header_lst and '*' not in payload_list[header_lst.index('%')] and str(int(round(float(payload_list[header_lst.index('%')])))) != bad_value else '' # noqa
-                SampleTemperature = payload_list[headers.index('T Pump')] if 'T Pump' in headers and '*' not in payload_list[headers.index('T Pump')] and str(int(round(float(payload_list[headers.index('T Pump')])))) != bad_value else '' # noqa
-                if "*" in lines[16:26].strip():
-                    self.data_truple.insert(counter, [Pressure,
-                                                      O3PartialPressure,
-                                                      Temperature, WindSpeed,
-                                                      WindDirection, LevelCode,
-                                                      Duration, GPHeight,
-                                                      RelativeHumidity,
-                                                      SampleTemperature])
-                    continue
-                self.data_truple.insert(counter, [Pressure, O3PartialPressure,
-                                                  Temperature, WindSpeed,
-                                                  WindDirection, LevelCode,
+        bad_value = str(s.metadata['Missing or bad values'])
+
+        # payload stuff
+        # Ask Tom about errors with get data and get data index
+        # check each value in each line for a *
+        counter = 0
+        for row in s.get_data():
+            star_flag = False
+            if any(['*' in str(x) for x in row]):
+                star_flag = True
+            Press = format(row[s.get_data_index('Press')], '.3f')
+            if '*' in Press or str(int(round(float(Press)))) == bad_value:
+                Press = ''
+            O3PP = format(row[s.get_data_index('O3', 'mPa')], '.3f')
+            if '*' in O3PP or str(int(round(float(O3PP)))) == bad_value:
+                O3PP = ''
+            Temp = format(row[s.get_data_index('Temp')], '.3f')
+            if '*' in Temp or str(int(round(float(Temp)))) == bad_value:
+                Temp = ''
+            WSPD = format(row[s.get_data_index('W Spd', 'm/s')], '.3f')
+            if '*' in WSPD or str(int(round(float(WSPD)))) == bad_value:
+                WSPD = ''
+            WDIR = format(row[s.get_data_index('W Dir')], '.3f')
+            if '*' in WDIR or str(int(round(float(WDIR)))) == bad_value:
+                WDIR = ''
+            Duration = str(row[s.get_data_index('Time', 'sec')])
+            if '*' in Duration or str(int(round(float(Duration)))) == bad_value: # noqa
+                Duration = ''
+            GPHeight = format(row[s.get_data_index('Alt', 'km')], '.3f')
+            if '*' in GPHeight or str(int(round(float(GPHeight)))) == bad_value: # noqa
+                GPHeight = ''
+            else:
+                GPHeight = str(float(GPHeight)*1000)
+            RelativeHumidity = format(row[s.get_data_index('RH', '%')], '.3f') # noqa
+            if '*' in RelativeHumidity or str(int(round(float(RelativeHumidity)))) == bad_value: # noqa
+                RelativeHumidity = ''
+            SampleTemperature = format(row[s.get_data_index('T Pump')], '.3f') # noqa
+            if '*' in SampleTemperature or str(int(round(float(SampleTemperature)))) == bad_value: # noqa
+                SampleTemperature = ''
+
+            if star_flag:
+                self.data_truple.insert(counter, [Press, O3PP, Temp, WSPD,
+                                                  WDIR, '',
                                                   Duration, GPHeight,
                                                   RelativeHumidity,
                                                   SampleTemperature])
-                counter = counter + 1
+            else:
+                self.data_truple.insert(counter, [Press, O3PP, Temp, WSPD,
+                                                  WDIR, '',
+                                                  Duration, GPHeight,
+                                                  RelativeHumidity,
+                                                  SampleTemperature])
+                counter += 1
+        # end of payload stuff
+
         LOGGER.info('Parsing metadata information from file, resource.cfg, and pywoudc.')  # noqa
         # Getting Information from Config file for CONTENT table
         try:
             LOGGER.info('Getting Content Table information from resource.cfg')
             # station_info dictionary stores parsed data
-            self.station_info["Content"] = [
-                util.get_config_value("SHADOZ", "CONTENT.Class"),
-                util.get_config_value("SHADOZ", "CONTENT.Category"),
-                util.get_config_value("SHADOZ", "CONTENT.Level"),
-                util.get_config_value("SHADOZ", "CONTENT.Form")
+            self.station_info['Content'] = [
+                util.get_config_value('SHADOZ', 'CONTENT.Class'),
+                util.get_config_value('SHADOZ', 'CONTENT.Category'),
+                util.get_config_value('SHADOZ', 'CONTENT.Level'),
+                util.get_config_value('SHADOZ', 'CONTENT.Form')
             ]
         except Exception, err:
             msg = 'Unable to get Content Table information due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
             return False, msg
 
-        # Change date format to meet WOUDC requirement
-        # Parsing data from SHADOZ to WOUDC format
-        if "," in metadata_dict["SHADOZ format data created"]:
-            re_data = metadata_dict["SHADOZ format data created"].replace(
-                ",", ".")
-            metadata_dict["SHADOZ format data created"] = re_data
-
-        if "," in metadata_dict["Station Principal Investigator(s)"]:
-            re_in = metadata_dict["Station Principal Investigator(s)"].replace(
-                ",", ".")
-            metadata_dict["Station Principal Investigator(s)"] = re_in
+        scientific_authority = s.metadata['Station Principal Investigator(s)'].replace(',', '.') # noqa
 
         if station_name is not None:
             station = station_name
         else:
             try:
-                number = metadata_dict["STATION"].index(",")
-                station = metadata_dict["STATION"][0:number]
+                number = s.metadata['STATION'].index(',')
+                station = s.metadata['STATION'][0:number]
             except Exception, err:
                 msg = 'Unable to get station name from file due to: %s' % str(err)  # noqa
                 LOGGER.error(msg)
@@ -200,50 +187,39 @@ class shadoz_converter(converter):
             Agency = agency_name
         else:
             try:
-                # Get agency information from foncig
+                # Get agency information from config
                 Agency = util.get_config_value(
-                    "AGENCY", station)
+                    'AGENCY', station)
             except Exception, err:
                 msg = 'Unable to get agency info from config file due to : %s' % str(err)  # noqa
                 LOGGER.error(msg)
                 Agency = 'N/A'
         try:
-            # Map Name from SHADOZ file to WOUDC databse's Name
+            # Map Name from SHADOZ file to WOUDC database's Name
             LOGGER.info('Try to map station name to WOUDC databaset station name.')  # noqa
             station = util.get_config_value(
-                "NAME CONVERTER",
-                metadata_dict["STATION"][0:number])
+                'NAME CONVERTER',
+                s.metadata['STATION'][0:number])
         except Exception, err:
             msg = 'Unable to find a station name mapping in woudc db due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
 
         station = station.decode('UTF-8')
+
         try:
-            # Formating date information
-            LOGGER.info('Getting Agency information from resource.cfg.')
-            date_map = {'January': '01', 'February': '02', 'March': '03',
-                        'April': '04', 'May': '05', 'June': '06', 'July': '07',
-                        'August': '08', 'September': '09', 'October': '10',
-                        'November': '11', 'December': '12'}
-            for item in date_map:
-                if item in metadata_dict["SHADOZ format data created"]:
-                    new_date = metadata_dict["SHADOZ format data created"].replace(item, date_map[item])  # noqa
-                    new_date = new_date.replace('.', '')
-                    new_date = new_date.replace(' ', '-')
-                    new_date_temp = new_date.split('-')
-                    if len(new_date_temp[0]) == 1:
-                        new_date_temp[0] = '0%s' % new_date_temp[0]
-                    new_date = '%s-%s-%s' % (new_date_temp[2],
-                                             new_date_temp[1],
-                                             new_date_temp[0])
-                    metadata_dict["SHADOZ format data created"] = new_date
-            if "Reprocessed" in metadata_dict["SHADOZ Version"]:
-                metadata_dict["SHADOZ Version"] = metadata_dict["SHADOZ Version"].strip().split(" ")[0] # noqa
+            data_generation_date = str(s.metadata['SHADOZ format data created']) # noqa
+
+            version = ''
+            if 'Reprocessed' in s.metadata['SHADOZ Version']:
+                version = s.metadata['SHADOZ Version'].strip().split(' ')[0]
+            else:
+                version = s.metadata['SHADOZ Version']
+
             self.station_info["Data_Generation"] = [
-                metadata_dict["SHADOZ format data created"],
+                data_generation_date,
                 Agency,
-                metadata_dict["SHADOZ Version"],
-                metadata_dict["Station Principal Investigator(s)"]
+                version,
+                scientific_authority
             ]
         except Exception, err:
             msg = 'Unable to get Data Generation information due to: %s' % str(err)  # noqa
@@ -251,88 +227,79 @@ class shadoz_converter(converter):
             return False, msg
 
         try:
-            self.station_info["Location"] = [metadata_dict["Latitude (deg)"],
-                                             metadata_dict["Longitude (deg)"],
-                                             metadata_dict["Elevation (m)"]]
+            self.station_info['Location'] = [str(s.metadata['Latitude (deg)']), # noqa
+                                             str(s.metadata['Longitude (deg)']), # noqa
+                                             str(s.metadata['Elevation (m)'])]
 
         except Exception, err:
             msg = 'Unable to get Location information due to: %s' % str(err)
             LOGGER.error(msg)
             return False, msg
 
-        try:
-            # Formatting Date
-            temp_datetime = metadata_dict["Launch Date"]
-            Year = temp_datetime[0:4]
-            Month = temp_datetime[4:6]
-            Day = temp_datetime[6:].strip()
-            metadata_dict["Launch Date"] = '%s-%s-%s' % (Year, Month, Day)
-        except Exception, err:
+        launch_date = ''
+        if 'Launch Date' not in s.metadata:
             msg = 'No Launch Date'
             LOGGER.error(msg)
-            metadata_dict["Launch Date"] = 'N/A'
+        else:
+            launch_date = str(s.metadata['Launch Date'])
 
-        try:
-            tok = metadata_dict["Launch Time (UT)"].split(':')
-            if len(tok[0]) == 1:
-                metadata_dict["Launch Time (UT)"] = '0%s' % metadata_dict["Launch Time (UT)"]  # noqa
-            if len(tok) == 2:
-                metadata_dict["Launch Time (UT)"] = '%s:00' % metadata_dict["Launch Time (UT)"]  # noqa
-        except Exception, err:
+        launch_time = ''
+        if 'Launch Time (UT)' not in s.metadata:
             msg = 'Launch Time not found.'
             LOGGER.error(msg)
-            metadata_dict["Launch Time (UT)"] = 'UNKNOWN'
+        else:
+            launch_time = str(s.metadata['Launch Time (UT)'])
 
-        self.station_info["Timestamp"] = ["+00:00:00",
-                                          metadata_dict["Launch Date"],
-                                          metadata_dict["Launch Time (UT)"]]
+        self.station_info["Timestamp"] = ['+00:00:00',
+                                          launch_date,
+                                          launch_time]
 
-        if 'Integrated O3 until EOF (DU)' in metadata_dict:
-            self.station_info["Flight_Summary"] = [
-                metadata_dict['Integrated O3 until EOF (DU)'],
-                "", "", "", "", "", "", "", ""]
+        if 'Integrated O3 until EOF (DU)' in s.metadata:
+            self.station_info['Flight_Summary'] = [
+                str(s.metadata['Integrated O3 until EOF (DU)']),
+                '', '', '', '', '', '', '', '']
 
-        elif 'Final Integrated O3 (DU)' in metadata_dict:
-            self.station_info["Flight_Summary"] = [
-                metadata_dict['Final Integrated O3 (DU)'],
-                "", "", "", "", "", "", "", ""]
+        elif 'Final Integrated O3 (DU)' in s.metadata:
+            self.station_info['Flight_Summary'] = [
+                str(s.metadata['Final Integrated O3 (DU)']),
+                '', '', '', '', '', '', '', '']
 
+        radiosonde = ''
         try:
-            Temp_Radiosonde = metadata_dict["Radiosonde, SN"]
-            idx = Temp_Radiosonde.index(',')
-            metadata_dict["Radiosonde, SN"] = Temp_Radiosonde[0:idx]
+            idx = str(s.metadata['Radiosonde, SN']).index(',')
+            radiosonde = str(s.metadata['Radiosonde, SN'])[0:idx]
         except Exception, err:
             msg = 'Radiosonde invalid value or not found in file'
             LOGGER.error(msg)
-            metadata_dict["Radiosonde, SN"] = ""
 
-        if 'Background current (uA)' not in metadata_dict:
-            metadata_dict["Background current (uA)"] = ''
+        background_current = ''
+        if 'Background current (uA)' in s.metadata:
+            background_current = str(s.metadata['Background current (uA)'])
 
-        if "Sonde/Sage Climatology(1988-2002)" in metadata_dict:
-            self.station_info["Auxillary_Data"] = [
-                metadata_dict["Radiosonde, SN"].replace(',', ''),
-                metadata_dict["Sonde/Sage Climatology(1988-2002)"].replace(',', ''), # noqa
-                metadata_dict["Background current (uA)"].replace(',', ''),
-                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
-                metadata_dict["Applied pump corrections"].replace(',', ''),
-                metadata_dict["KI Solution"].replace(',', '')]
-        elif "Sonde/MLS Climatology(1988-2010)" in metadata_dict:
-            self.station_info["Auxillary_Data"] = [
-                metadata_dict["Radiosonde, SN"].replace(',', ''),
-                metadata_dict["Sonde/MLS Climatology(1988-2010)"].replace(',', ''), # noqa
-                metadata_dict["Background current (uA)"].replace(',', ''),
-                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
-                metadata_dict["Applied pump corrections"].replace(',', ''),
-                metadata_dict["KI Solution"].replace(',', '')]
+        if 'Sonde/Sage Climatology(1988-2002)' in s.metadata:
+            self.station_info['Auxillary_Data'] = [
+                radiosonde.replace(',', ''),
+                str(s.metadata['Sonde/Sage Climatology(1988-2002)']).replace(',', ''), # noqa
+                background_current.replace(',', ''),
+                str(s.metadata['Pump flow rate (sec/100ml)']).replace(',', ''),
+                str(s.metadata['Applied pump corrections']).replace(',', ''),
+                str(s.metadata['KI Solution']).replace(',', '')]
+        elif 'Sonde/MLS Climatology(1988-2010)' in s.metadata:
+            self.station_info['Auxillary_Data'] = [
+                radiosonde.replace(',', ''),
+                str(s.metadata['Sonde/MLS Climatology(1988-2010)']).replace(',', ''), # noqa
+                background_current.replace(',', ''),
+                str(s.metadata['Pump flow rate (sec/100ml)']).replace(',', ''),
+                str(s.metadata['Applied pump corrections']).replace(',', ''),
+                str(s.metadata['KI Solution']).replace(',', '')]
         else:
-            self.station_info["Auxillary_Data"] = [
-                metadata_dict["Radiosonde, SN"].replace(',', ''),
-                "",
-                metadata_dict["Background current (uA)"].replace(',', ''),
-                metadata_dict["Pump flow rate (sec/100ml)"].replace(',', ''),
-                metadata_dict["Applied pump corrections"].replace(',', ''),
-                metadata_dict["KI Solution"].replace(',', '')]
+            self.station_info['Auxillary_Data'] = [
+                radiosonde.replace(',', ''),
+                '',
+                background_current.replace(',', ''),
+                str(s.metadata['Pump flow rate (sec/100ml)']).replace(',', ''),
+                str(s.metadata['Applied pump corrections']).replace(',', ''),
+                str(s.metadata['KI Solution']).replace(',', '')]
 
         try:
             LOGGER.info('Getting station metadata by pywoudc.')
@@ -370,10 +337,10 @@ class shadoz_converter(converter):
                         if temp_dict[item] == '':
                             temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
                     break
-            self.station_info["Platform"] = []
+            self.station_info['Platform'] = []
 
             for item in header_list:
-                self.station_info["Platform"].append(temp_dict[item])
+                self.station_info['Platform'].append(temp_dict[item])
 
         except Exception, err:
             msg = 'Unable to process station metadata from pywoudc due to: %s' % str(err)  # noqa
@@ -390,32 +357,32 @@ class shadoz_converter(converter):
             if 'inst number' in metadata_dic:
                 inst_number = metadata_dic['inst number']
 
+            key = ''
             if inst_model == 'UNKNOWN' and inst_number == 'UNKNOWN':
-                if (',' in metadata_dict["Sonde Instrument, SN"] or
-                   ' ' in metadata_dict["Sonde Instrument, SN"].strip()):
-                    key = re.split(',| ', metadata_dict["Sonde Instrument, SN"].strip())  # noqa
+                if (',' in str(s.metadata['Sonde Instrument, SN']) or
+                   ' ' in str(s.metadata['Sonde Instrument, SN']).strip()):
+                    key = re.split(',| ', str(s.metadata['Sonde Instrument, SN']).strip())  # noqa
                     key = key[len(key) - 1]
-                    metadata_dict["Sonde Instrument, SN"] = key
                 else:
-                    metadata_dict["Sonde Instrument, SN"] = metadata_dict["Sonde Instrument, SN"].strip()  # noqa
-                if metadata_dict["Sonde Instrument, SN"] == bad_value:
+                    key = str(s.metadata['Sonde Instrument, SN']).strip()
+                if str(s.metadata['Sonde Instrument, SN']) == bad_value:
                     inst_model = 'UNKNOWN'
                     inst_number = 'UNKNOWN'
                 else:
                     # Try to parse instrument data collected from
                     # SHADOZ file
-                    if '-' in metadata_dict["Sonde Instrument, SN"]:
+                    if '-' in key:
                         inst_model = 'UNKNOWN'
-                        inst_number = metadata_dict["Sonde Instrument, SN"]
-                    elif 'z' == metadata_dict["Sonde Instrument, SN"][0:1].lower():  # noqa
-                        inst_model = metadata_dict["Sonde Instrument, SN"][0:1]  # noqa
-                        inst_number = metadata_dict["Sonde Instrument, SN"][1:]  # noqa
-                    elif re.search('[a-zA-Z]', metadata_dict["Sonde Instrument, SN"][0:2]):  # noqa:
-                        inst_model = metadata_dict["Sonde Instrument, SN"][0:2]
-                        inst_number = metadata_dict["Sonde Instrument, SN"][2:]
+                        inst_number = key
+                    elif 'z' == key[0:1].lower():  # noqa
+                        inst_model = key[0:1]  # noqa
+                        inst_number = key[1:]  # noqa
+                    elif re.search('[a-zA-Z]', key[0:2]):  # noqa:
+                        inst_model = key[0:2]
+                        inst_number = key[2:]
                     else:
                         inst_model = 'UNKNOWN'
-                        inst_number = metadata_dict["Sonde Instrument, SN"]
+                        inst_number = key
             if inst_number.strip() == '':
                 inst_number = 'UNKNOWN'
             if inst_model.strip() == '':
