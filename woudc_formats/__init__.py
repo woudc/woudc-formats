@@ -108,35 +108,49 @@ class shadoz_converter(converter):
             star_flag = False
             if any(['*' in str(x) for x in row]):
                 star_flag = True
-            Press = format(row[s.get_data_index('Press')], '.3f')
-            if '*' in Press or str(int(round(float(Press)))) == bad_value:
+            Press = row[s.get_data_index('Press')]
+            if (type(Press) is str and '*' in Press) or str(int(round(float(Press)))) == bad_value: # noqa
                 Press = ''
-            O3PP = format(row[s.get_data_index('O3', 'mPa')], '.3f')
-            if '*' in O3PP or str(int(round(float(O3PP)))) == bad_value:
+            else:
+                Press = format(Press, '.3f')
+            O3PP = row[s.get_data_index('O3', 'mPa')]
+            if (type(O3PP) is str and '*' in O3PP) or str(int(round(float(O3PP)))) == bad_value: # noqa
                 O3PP = ''
-            Temp = format(row[s.get_data_index('Temp')], '.3f')
-            if '*' in Temp or str(int(round(float(Temp)))) == bad_value:
+            else:
+                O3PP = format(O3PP, '.3f')
+            Temp = row[s.get_data_index('Temp')]
+            if (type(Temp) is str and '*' in Temp) or str(int(round(float(Temp)))) == bad_value: # noqa
                 Temp = ''
-            WSPD = format(row[s.get_data_index('W Spd', 'm/s')], '.3f')
-            if '*' in WSPD or str(int(round(float(WSPD)))) == bad_value:
+            else:
+                Temp = format(Temp, '.3f')
+            WSPD = row[s.get_data_index('W Spd', 'm/s')]
+            if (type(WSPD) is str and '*' in WSPD) or str(int(round(float(WSPD)))) == bad_value: # noqa
                 WSPD = ''
-            WDIR = format(row[s.get_data_index('W Dir')], '.3f')
-            if '*' in WDIR or str(int(round(float(WDIR)))) == bad_value:
+            else:
+                WSPD = format(WSPD, '.3f')
+            WDIR = row[s.get_data_index('W Dir')]
+            if (type(WDIR) is str and '*' in WDIR) or str(int(round(float(WDIR)))) == bad_value: # noqa
                 WDIR = ''
+            else:
+                WDIR = format(WDIR, '.3f')
             Duration = str(row[s.get_data_index('Time', 'sec')])
             if '*' in Duration or str(int(round(float(Duration)))) == bad_value: # noqa
                 Duration = ''
-            GPHeight = format(row[s.get_data_index('Alt', 'km')], '.3f')
-            if '*' in GPHeight or str(int(round(float(GPHeight)))) == bad_value: # noqa
+            GPHeight = row[s.get_data_index('Alt', 'km')]
+            if (type(GPHeight) is str and '*' in GPHeight) or str(int(round(float(GPHeight)))) == bad_value: # noqa
                 GPHeight = ''
             else:
-                GPHeight = str(float(GPHeight) * 1000)
-            RelativeHumidity = format(row[s.get_data_index('RH', '%')], '.3f') # noqa
-            if '*' in RelativeHumidity or str(int(round(float(RelativeHumidity)))) == bad_value: # noqa
+                GPHeight = str(float(format(GPHeight, '.3f')) * 1000)
+            RelativeHumidity = row[s.get_data_index('RH', '%')]
+            if (type(RelativeHumidity) is str and '*' in RelativeHumidity) or str(int(round(float(RelativeHumidity)))) == bad_value: # noqa
                 RelativeHumidity = ''
-            SampleTemperature = format(row[s.get_data_index('T Pump')], '.3f') # noqa
-            if '*' in SampleTemperature or str(int(round(float(SampleTemperature)))) == bad_value: # noqa
+            else:
+                RelativeHumidity = format(RelativeHumidity, '.3f')
+            SampleTemperature = row[s.get_data_index('T Pump')]
+            if (type(SampleTemperature) is str and '*' in SampleTemperature) or str(int(round(float(SampleTemperature)))) == bad_value: # noqa
                 SampleTemperature = ''
+            else:
+                SampleTemperature = format(SampleTemperature, '.3f')
 
             if star_flag:
                 self.data_truple.insert(counter, [Press, O3PP, Temp, WSPD,
