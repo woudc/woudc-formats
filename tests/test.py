@@ -82,7 +82,7 @@ class Test(unittest.TestCase):
         self.assertTrue("LOCATION$1" in s.extcsv_ds.keys())
         self.assertTrue("TIMESTAMP$1" in s.extcsv_ds.keys())
         self.assertTrue("FLIGHT_SUMMARY$1" in s.extcsv_ds.keys())
-        self.assertTrue("AUXILLARY_DATA$1" in s.extcsv_ds.keys())
+        self.assertTrue("AUXILIARY_DATA$1" in s.extcsv_ds.keys())
         self.assertTrue("PROFILE$1" in s.extcsv_ds.keys())
         self.assertTrue("Class" in s.extcsv_ds["CONTENT$1"].keys())
         self.assertTrue("Category" in s.extcsv_ds["CONTENT$1"].keys())
@@ -120,17 +120,17 @@ class Test(unittest.TestCase):
         self.assertTrue("ObsType" in s.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
         self.assertTrue("Instrument" in s.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
         self.assertTrue("Number" in s.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("RadioSonde" in s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+        self.assertTrue("RadioSonde" in s.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("Sonde Climatology" in
-                        s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+                        s.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("Background Current" in
-                        s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+                        s.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("PumpRate" in
-                        s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+                        s.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("BackgroundCorr" in
-                        s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+                        s.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("KI Solution" in
-                        s.extcsv_ds["AUXILLARY_DATA$1"].keys())
+                        s.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("Pressure" in s.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("O3PartialPressure" in s.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("Temperature" in s.extcsv_ds["PROFILE$1"].keys())

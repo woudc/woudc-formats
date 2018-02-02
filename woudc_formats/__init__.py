@@ -288,7 +288,7 @@ class shadoz_converter(converter):
             background_current = str(s.metadata['Background current (uA)'])
 
         if 'Sonde/Sage Climatology(1988-2002)' in s.metadata:
-            self.station_info['Auxillary_Data'] = [
+            self.station_info['Auxiliary_Data'] = [
                 radiosonde.replace(',', ''),
                 str(s.metadata['Sonde/Sage Climatology(1988-2002)']).replace(',', ''), # noqa
                 background_current.replace(',', ''),
@@ -296,7 +296,7 @@ class shadoz_converter(converter):
                 str(s.metadata['Applied pump corrections']).replace(',', ''),
                 str(s.metadata['KI Solution']).replace(',', '')]
         elif 'Sonde/MLS Climatology(1988-2010)' in s.metadata:
-            self.station_info['Auxillary_Data'] = [
+            self.station_info['Auxiliary_Data'] = [
                 radiosonde.replace(',', ''),
                 str(s.metadata['Sonde/MLS Climatology(1988-2010)']).replace(',', ''), # noqa
                 background_current.replace(',', ''),
@@ -304,7 +304,7 @@ class shadoz_converter(converter):
                 str(s.metadata['Applied pump corrections']).replace(',', ''),
                 str(s.metadata['KI Solution']).replace(',', '')]
         else:
-            self.station_info['Auxillary_Data'] = [
+            self.station_info['Auxiliary_Data'] = [
                 radiosonde.replace(',', ''),
                 '',
                 background_current.replace(',', ''),
@@ -519,14 +519,14 @@ class shadoz_converter(converter):
             return False, msg
 
         try:
-            LOGGER.info('Adding Auxillary_Data Table.')
-            ecsv.add_data("AUXILLARY_DATA",
-                          ",".join(self.station_info["Auxillary_Data"]),
+            LOGGER.info('Adding Auxiliary_Data Table.')
+            ecsv.add_data("AUXILIARY_DATA",
+                          ",".join(self.station_info["Auxiliary_Data"]),
                           field="RadioSonde,Sonde Climatology,Background Current,PumpRate," # noqa
                           "BackgroundCorr,"
                           "KI Solution")
         except Exception, err:
-            msg = 'Unable to add Auxillary table due to : %s' % str(err)
+            msg = 'Unable to add Auxiliary table due to : %s' % str(err)
             LOGGER.error(msg)
             return False, msg
 
