@@ -11,7 +11,7 @@ from/to WOUDC supported formats.
 Currently supported features include:
 
 Readers: SHADOZ, BAS, NASA AMES files, Vaisala.
-Writers: WOUDC totalozone [daily summary](http://woudc.org/archive/Summaries/TotalOzone/Daily_Summary/FileFormat_DV.txt) (master file).
+Writers: WOUDC totalozone [daily summary](https://woudc.org/archive/Summaries/TotalOzone/Daily_Summary/FileFormat_DV.txt) (master file).
 
 ### Installation Instructions
 
