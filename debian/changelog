@@ -1,3 +1,10 @@
+woudc-formats (0.2.0) unstable; urgency=low
+
+  * Update SHADOZ converter to use pyshadoz package
+  * various bug fixes
+
+ -- WOUDC <ec.woudc.ec@canada.ca>  Wed, 28 Feb 2018 12:18:17 +0000
+
 woudc-formats (0.1.0) unstable; urgency=low
 
   * Initial release
