@@ -49,6 +49,9 @@ from datetime import datetime
 import os
 import re
 import time
+import shutil
+import tempfile
+import zipfile
 import util
 from StringIO import StringIO
 from util import WOUDCextCSVReader
@@ -61,7 +64,7 @@ class Old_TotalOzone_MasterFile(object):
     def __init__(self):
         pass
 
-    def update_totalOzone_master_file(self, dir, master_file, date, mode, heading):  # noqa
+    def update_totalOzone_master_file(self, directory, master_file, date, mode, heading):  # noqa
         """Updates Total Ozone Master File"""
         # Initialization
         write_output = 1
@@ -81,8 +84,18 @@ class Old_TotalOzone_MasterFile(object):
         global output_file
         output_file = 'Summaries/TotalOzone/Daily_Summary/o3tot.zip'  # noqa
 
+        # extract zipfile
+        zip_flag = False
+        path = directory
+        if zipfile.is_zipfile(directory):
+            zip_flag = True
+            tmpdir = tempfile.mkdtemp()
+            z = zipfile.ZipFile(directory)
+            z.extractall(path=tmpdir)
+            path = tmpdir
+
         # traverse the given directory
-        for dirname, dirnames, filenames in os.walk(dir):
+        for dirname, dirnames, filenames in os.walk(path):
             dirnames.sort()
             filenames.sort()
             for filename in filenames:
@@ -321,6 +334,9 @@ class Old_TotalOzone_MasterFile(object):
         # zip data file
         util.zip(os.path.abspath(str(master_file)), "o3tot.zip")
         tmp_filename = "o3tot.zip"
+
+        if zip_flag:
+            shutil.rmtree(tmpdir)
 
         # log file close
         log_file.close()
