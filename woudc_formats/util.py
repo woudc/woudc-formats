@@ -54,7 +54,6 @@ import zipfile
 import requests
 import ConfigParser
 import os
-import tarfile
 import csv
 from woudc_extcsv import loads
 from StringIO import StringIO
@@ -263,20 +262,6 @@ def zip(in_filename, out_filename):
         zf.write(in_filename, compress_type=compression)
     finally:
         zf.close()
-
-
-# unzip tar, tar.gz, etc
-def unzip(filename, dir_path=None):
-    if dir_path is not None:
-        if not os.path.isdir(os.path.join(dir_path, filename[0:filename.index('.')])):  # noqa
-            os.mkdir(os.path.join(dir_path, filename[0:filename.index('.')]))
-    try:
-        tar = tarfile.open(os.path.join(dir_path, filename))
-        for item in tar:
-            tar.extract(item, os.path.join(dir_path, filename[0:filename.index('.')]))  # noqa
-    except Exception:
-        print 'ERROR: Unable to unzip %s!' % filename
-    return
 
 
 # returns date in YYYY-MM-DD format given YYYY-M-D
