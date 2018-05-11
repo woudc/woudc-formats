@@ -72,11 +72,11 @@ class Old_TotalOzone_MasterFile(object):
         log_file = open('totalOzone_processing_log_%s' % current_time, 'wb')  # noqa
         data_file = None
         global tmp_filename
-        tmp_filename = master_file
+        tmp_filename = os.path.join(master_file, 'o3tot')
         if mode == 'overwrite':
-            data_file = open(tmp_filename, 'wb')
+            data_file = open(tmp_filename, 'wb+')
         else:
-            data_file = open(tmp_filename, 'ab')
+            data_file = open(tmp_filename, 'ab+')
         if heading == 'on':
             data_file.write('Platform_ID,Year,Month,Day,Start_Hour,Finish_Hour,Wavelength_Pair,Observation_Type,Total_Column_Ozone_Amount,Ozone_Std_Error,Instrument_Type,Instrument_Number\r\n')  # noqa
 
@@ -332,8 +332,11 @@ class Old_TotalOzone_MasterFile(object):
         data_file.close()
 
         # zip data file
-        util.zip(os.path.abspath(str(master_file)), "o3tot.zip")
-        tmp_filename = "o3tot.zip"
+        out_zip = zipfile.ZipFile(os.path.join(master_file, 'o3tot.zip'), 'w')
+        out_zip.write(tmp_filename, 'o3tot')
+        out_zip.close()
+
+        os.remove(tmp_filename)
 
         if zip_flag:
             shutil.rmtree(tmpdir)
