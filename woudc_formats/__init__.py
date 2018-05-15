@@ -1334,7 +1334,7 @@ class AMES_2160_converter(converter):
                             raise Exception('Mismatched Temperatures:\
                                             expected Kelvin, found Celsius')
                     except Exception, err:
-                        msg = 'Unable to get Content Info due to : %s' % str(err)
+                        msg = 'Unable to get Content Info due to : %s' % str(err) # noqa
                         LOGGER.error(msg)
                         return False, msg
                     if len(re.findall('[A-Za-z]+', line)) == 0:
