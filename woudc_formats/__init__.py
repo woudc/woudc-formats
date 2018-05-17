@@ -1163,7 +1163,7 @@ class AMES_2160_converter(converter):
         flag = False
         date_tok = []
         platform_name = None
-        kelvin = False
+        is_kelvin = False
 
         if agency_name is None:
             msg = 'Agency name required for AMES conversion'
@@ -1286,7 +1286,8 @@ class AMES_2160_converter(converter):
                 counter += 1
                 # Check if temperature is in Kelvin
                 if 'Temperature [K]' in line:
-                    kelvin = True
+                    is_kelvin = True
+                    LOGGER.debug('Temperature in file is in Kelvin and will be converted to Celsius.') # noqa
                 if ('Time after launch' in line or
                    'Pressure at observation' in line):
                     # Flagging payload header reached
@@ -1330,11 +1331,11 @@ class AMES_2160_converter(converter):
                     if 'Serial number of ECC' in line:
                         inst_index = level_counter - 1
                     try:
-                        if 'C' in [x.strip() for x in line.split()] and kelvin: # noqa
+                        if 'C' in [x.strip() for x in line.split()] and is_kelvin: # noqa
                             raise Exception('Mismatched Temperatures:\
                                             expected Kelvin, found Celsius')
                     except Exception, err:
-                        msg = 'Unable to get Content Info due to : %s' % str(err) # noqa
+                        msg = 'Mismatched Temperatures: expected Kelvin, found Celsius' # noqa
                         LOGGER.error(msg)
                         return False, msg
                     if len(re.findall('[A-Za-z]+', line)) == 0:
@@ -1609,15 +1610,17 @@ class AMES_2160_converter(converter):
                     if 'GPHeight' in element_index_dict.keys():
                         GPHeight = line_tok[element_index_dict['GPHeight']]
                     if 'Temperature' in element_index_dict.keys():
-                        if kelvin:
+                        if is_kelvin:
                             Temperature = str(float(line_tok[element_index_dict['Temperature']]) - 273.15) # noqa
+                            LOGGER.debug('Converting temperature from: %s K to %s C' % (line_tok[element_index_dict['Temperature']], Temperature)) # noqa
                         else:
                             Temperature = line_tok[element_index_dict['Temperature']]  # noqa
                     if 'RelativeHumidity' in element_index_dict.keys():
                         RelativeHumidity = line_tok[element_index_dict['RelativeHumidity']]  # noqa
                     if 'SampleTemperature' in element_index_dict.keys():
-                        if kelvin:
+                        if is_kelvin:
                             SampleTemperature = str(float(line_tok[element_index_dict['SampleTemperature']]) - 273.15) # noqa
+                            LOGGER.debug('Converting temperature from: %s K to %s C' % (line_tok[element_index_dict['SampleTemperature']], SampleTemperature)) # noqa
                         else:
                             SampleTemperature = line_tok[element_index_dict['SampleTemperature']]  # noqa
                     if 'O3PartialPressure' in element_index_dict.keys():
