@@ -332,7 +332,7 @@ class Old_TotalOzone_MasterFile(object):
         data_file.close()
 
         # zip data file
-        out_zip = zipfile.ZipFile(os.path.join(master_file, 'o3tot.zip'), 'w')
+        out_zip = zipfile.ZipFile(os.path.join(master_file, 'o3tot.zip'), 'w', zipfile.ZIP_DEFLATED)
         out_zip.write(tmp_filename, 'o3tot')
         out_zip.close()
 
