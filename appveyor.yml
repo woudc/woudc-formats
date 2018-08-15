@@ -10,7 +10,8 @@ environment:
 
 install:
   - set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
-  - pip.exe install -r requirements.txt
+  - pip.exe install numpy
+  - pip.exe install --no-deps -r requirements.txt
   - pip.exe install -r requirements-dev.txt
   - python setup.py install
 

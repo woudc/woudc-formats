@@ -52,7 +52,13 @@ with open('VERSION.txt') as ff:
 
 # set dependencies
 with open('requirements.txt') as ff:
-    INSTALL_REQUIRES = [line.strip() for line in ff]
+    INSTALL_REQUIRES = []
+    DEPENDENCY_LINKS = []
+    for line in ff:
+        if 'git+' in line:
+            DEPENDENCY_LINKS.append(line.strip())
+        else:
+            INSTALL_REQUIRES.append(line.strip())
 
 KEYWORDS = [
     'Ozone',
@@ -144,6 +150,7 @@ setup(
     maintainer_email=EMAIL,
     url=URL,
     install_requires=INSTALL_REQUIRES,
+    dependency_links=DEPENDENCY_LINKS,
     packages=find_packages('.'),
     package_data={'woudc_formats': ['resource.cfg', 'PI_list.txt']},
     entry_points={

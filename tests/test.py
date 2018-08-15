@@ -142,7 +142,7 @@ class Test(unittest.TestCase):
         self.assertTrue("RelativeHumidity" in s.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("SampleTemperature" in s.extcsv_ds["PROFILE$1"].keys())
 
-        with open(shadoz_filename, "r") as f:
+        with open(shadoz_filename) as f:
             counter = 0
             line_counter = 0
             payload_val = 0
@@ -170,7 +170,7 @@ class Test(unittest.TestCase):
             self.assertEqual(len(s.extcsv_ds["PROFILE$1"][val]), counter)
         self.assertEqual(s.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
         self.assertEqual(s.extcsv_ds["PLATFORM$1"]["Country"],
-                         ["REU"])
+                         ["FRA"])
         self.assertEqual(s.extcsv_ds["DATA_GENERATION$1"]["Agency"],
                          ["U_LaReunion"])
 
@@ -252,8 +252,7 @@ class Test(unittest.TestCase):
         self.assertTrue("INSTRUMENT$1" in a.extcsv_ds.keys())
         self.assertTrue("LOCATION$1" in a.extcsv_ds.keys())
         self.assertTrue("TIMESTAMP$1" in a.extcsv_ds.keys())
-        self.assertTrue("FLIGHT_SUMMARY$1" in a.extcsv_ds.keys())
-        self.assertTrue("AIXILLARY_DATA$1" in a.extcsv_ds.keys())
+        self.assertTrue("AUXILIARY_DATA$1" in a.extcsv_ds.keys())
         self.assertTrue("PROFILE$1" in a.extcsv_ds.keys())
         self.assertTrue("Class" in a.extcsv_ds["CONTENT$1"].keys())
         self.assertTrue("Category" in a.extcsv_ds["CONTENT$1"].keys())
@@ -278,29 +277,16 @@ class Test(unittest.TestCase):
         self.assertTrue("UTCOffset" in a.extcsv_ds["TIMESTAMP$1"].keys())
         self.assertTrue("Date" in a.extcsv_ds["TIMESTAMP$1"].keys())
         self.assertTrue("Time" in a.extcsv_ds["TIMESTAMP$1"].keys())
-        self.assertTrue("IntegratedO3" in
-                        a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("CorrectionCode" in
-                        a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("SondeTotalO3" in
-                        a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("CorrectionFactor" in
-                        a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("TotalO3" in a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("WLCode" in a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("ObsType" in a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("Instrument" in a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("Number" in a.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("MeteoSonde" in a.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("ib1" in a.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("ib2" in a.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("PumpRate" in a.extcsv_ds["AIXILLARY_DATA$1"].keys())
+        self.assertTrue("MeteoSonde" in a.extcsv_ds["AUXILIARY_DATA$1"].keys())
+        self.assertTrue("ib1" in a.extcsv_ds["AUXILIARY_DATA$1"].keys())
+        self.assertTrue("ib2" in a.extcsv_ds["AUXILIARY_DATA$1"].keys())
+        self.assertTrue("PumpRate" in a.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("BackgroundCorr" in
-                        a.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        a.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("SampleTemperatureType" in
-                        a.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        a.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("MinutesGroundO3" in
-                        a.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        a.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("Pressure" in a.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("O3PartialPressure" in a.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("Temperature" in a.extcsv_ds["PROFILE$1"].keys())
@@ -312,14 +298,26 @@ class Test(unittest.TestCase):
         self.assertTrue("RelativeHumidity" in a.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("SampleTemperature" in a.extcsv_ds["PROFILE$1"].keys())
 
-        self.assertEqual(a.extcsv_ds["PROFILE$1"]["Pressure"][0],
-                         "980.2")
-        self.assertEqual(a.extcsv_ds["PROFILE$1"]["Pressure"][1],
-                         "979.1")
-        self.assertEqual(a.extcsv_ds["PROFILE$1"]["Pressure"][10],
-                         "969.4")
-        self.assertEqual(a.extcsv_ds["PROFILE$1"]["O3PartialPressure"][10],
-                         "3.31")
+        with open(AMES_filename) as f:
+            payload = False
+            counter = 0
+            for line in f:
+                if payload:
+                    payload_list = [str(float(x)) for x in line.split()]
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["Pressure"][counter], payload_list[0]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["O3PartialPressure"][counter], payload_list[6]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["Temperature"][counter], payload_list[3]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["WindSpeed"][counter], payload_list[8]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["WindDirection"][counter], payload_list[7]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["Duration"][counter], payload_list[1]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["GPHeight"][counter], payload_list[2]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["RelativeHumidity"][counter], payload_list[4]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["SampleTemperature"][counter], payload_list[5]) # noqa
+                    self.assertEqual(a.extcsv_ds["PROFILE$1"]["LevelCode"][counter], '') # noqa
+                    counter += 1
+                if 'ECC6A' in line:
+                    payload = True
+
         self.assertEqual(a.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
         self.assertEqual(a.extcsv_ds["PLATFORM$1"]["Country"],
                          ["GBR"])
@@ -332,8 +330,7 @@ class Test(unittest.TestCase):
         self.assertTrue("INSTRUMENT$1" in b.extcsv_ds.keys())
         self.assertTrue("LOCATION$1" in b.extcsv_ds.keys())
         self.assertTrue("TIMESTAMP$1" in b.extcsv_ds.keys())
-        self.assertTrue("FLIGHT_SUMMARY$1" in b.extcsv_ds.keys())
-        self.assertTrue("AIXILLARY_DATA$1" in b.extcsv_ds.keys())
+        self.assertTrue("AUXILIARY_DATA$1" in b.extcsv_ds.keys())
         self.assertTrue("PROFILE$1" in b.extcsv_ds.keys())
         self.assertTrue("Class" in b.extcsv_ds["CONTENT$1"].keys())
         self.assertTrue("Category" in b.extcsv_ds["CONTENT$1"].keys())
@@ -358,29 +355,16 @@ class Test(unittest.TestCase):
         self.assertTrue("UTCOffset" in b.extcsv_ds["TIMESTAMP$1"].keys())
         self.assertTrue("Date" in b.extcsv_ds["TIMESTAMP$1"].keys())
         self.assertTrue("Time" in b.extcsv_ds["TIMESTAMP$1"].keys())
-        self.assertTrue("IntegratedO3" in
-                        b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("CorrectionCode" in
-                        b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("SondeTotalO3" in
-                        b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("CorrectionFactor" in
-                        b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("TotalO3" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("WLCode" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("ObsType" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("Instrument" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("Number" in b.extcsv_ds["FLIGHT_SUMMARY$1"].keys())
-        self.assertTrue("MeteoSonde" in b.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("ib1" in b.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("ib2" in b.extcsv_ds["AIXILLARY_DATA$1"].keys())
-        self.assertTrue("PumpRate" in b.extcsv_ds["AIXILLARY_DATA$1"].keys())
+        self.assertTrue("MeteoSonde" in b.extcsv_ds["AUXILIARY_DATA$1"].keys())
+        self.assertTrue("ib1" in b.extcsv_ds["AUXILIARY_DATA$1"].keys())
+        self.assertTrue("ib2" in b.extcsv_ds["AUXILIARY_DATA$1"].keys())
+        self.assertTrue("PumpRate" in b.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("BackgroundCorr" in
-                        b.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        b.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("SampleTemperatureType" in
-                        b.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        b.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("MinutesGroundO3" in
-                        b.extcsv_ds["AIXILLARY_DATA$1"].keys())
+                        b.extcsv_ds["AUXILIARY_DATA$1"].keys())
         self.assertTrue("Pressure" in b.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("O3PartialPressure" in b.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("Temperature" in b.extcsv_ds["PROFILE$1"].keys())
@@ -392,14 +376,26 @@ class Test(unittest.TestCase):
         self.assertTrue("RelativeHumidity" in b.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("SampleTemperature" in b.extcsv_ds["PROFILE$1"].keys())
 
-        self.assertEqual(b.extcsv_ds["PROFILE$1"]["Pressure"][0],
-                         "820.26")
-        self.assertEqual(b.extcsv_ds["PROFILE$1"]["Pressure"][1],
-                         "820.05")
-        self.assertEqual(b.extcsv_ds["PROFILE$1"]["Pressure"][10],
-                         "816.04")
-        self.assertEqual(b.extcsv_ds["PROFILE$1"]["O3PartialPressure"][10],
-                         "4.8607")
+        with open(AMES_filename2) as f:
+            payload = False
+            counter = 0
+            for line in f:
+                if payload:
+                    payload_list = [str(float(x)) for x in line.split()]
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["Pressure"][counter], payload_list[1]) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["O3PartialPressure"][counter], payload_list[5]) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["Temperature"][counter], str(float(payload_list[3]) - 273.15)) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["WindSpeed"][counter], payload_list[7]) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["WindDirection"][counter], payload_list[6]) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["Duration"][counter], payload_list[0]) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["GPHeight"][counter], payload_list[2]) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["RelativeHumidity"][counter], payload_list[4]) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["SampleTemperature"][counter], str(float(payload_list[11]) - 273.15)) # noqa
+                    self.assertEqual(b.extcsv_ds["PROFILE$1"]["LevelCode"][counter], '') # noqa
+                    counter += 1
+                if '      s     hPa' in line:
+                    payload = True
+
         self.assertEqual(b.extcsv_ds["PLATFORM$1"]["Type"], ["STN"])
         self.assertEqual(b.extcsv_ds["PLATFORM$1"]["Country"],
                          ["USA"])

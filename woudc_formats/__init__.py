@@ -51,6 +51,7 @@ import woudc_extcsv
 from woudc_formats import util
 import ntpath
 from pyshadoz import SHADOZ
+import nappy
 
 __version__ = "0.1.0"
 
@@ -567,8 +568,8 @@ class Vaisala_converter(converter):
 
     def parser(self, file_content, station_name, agency_name, metadata_dic):
         """
-        :parm file_content: opened file object for SHADOZ file.
-        :parm metadata_dic: user specified metadata informatiom
+        :param file_content: opened file object for SHADOZ file.
+        :param metadata_dic: user specified metadata informatiom
         Agency, SA, ID, Station(Name), Country are required as input
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
@@ -929,7 +930,7 @@ class BAS_converter(converter):
 
     def parser(self, file_content):
         """
-        :parm file_content: opened file object for BAS file.
+        :param file_content: opened file object for BAS file.
 
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
@@ -1150,21 +1151,11 @@ class AMES_2160_converter(converter):
 
     def parser(self, file_content, agency_name, metadata_dict):
         """
-        :parm file_content: opened file object for AMES file.
-        :parm metadata_dict: dictionary stores user inputed station metadata
+        :param file_content: path to AMES file.
+        :param metadata_dict: dictionary stores user inputed station metadata
         Station name and Agency name is required in order to process AMES file
         Processing of data, collecting required information for WOUDC EXT-CSV.
         """
-
-        counter = 0
-        flag = False
-        flag_first = 0
-        time = ''
-        flag = False
-        date_tok = []
-        platform_name = None
-        is_kelvin = False
-
         if agency_name is None:
             msg = 'Agency name required for AMES conversion'
             LOGGER.error(msg)
@@ -1173,252 +1164,179 @@ class AMES_2160_converter(converter):
         client = WoudcClient()
 
         LOGGER.info('Parsing AMES-2160 file.')
-        LOGGER.info('Collecting header inforamtion')
 
-        for line in file_content:
-            counter += 1
-            # Collecting information line by line
-            if counter == 1:
-                # Two situation:
-                #      1. first line contains 2160
-                #      2. ndacc AMES-2160, contains a header line for the file
-                # Only AMES from ndacc with header contains time
-                # information(hh:mm:ss)
-                if '2160' in line:
-                    flag = True
-                    station_location = int(line.split()[0])
-                    if flag_first:
-                        station_location += 1
-                    continue
-                else:
-                    if flag_first == 1:
-                        raise Exception('Unsupported AMES file')
-                    counter = 0
-                    flag_first = 1
-                    tok = line.split('   ')
-                    time = tok[-1].strip().split(' ')[1]
-                    time = time[0:8]
-                    continue
-            elif counter == 2:
-                # Second line of AMES is SA, need to reformat it to WOUDC
-                # Standard
-                if 'SA' in metadata_dict:
-                    PI = metadata_dict['SA'].upper().strip()
-                else:
-                    if ',' in line:
-                        First_Name = line.split(',')[0].strip()
-                        Last_Name = line.split(',')[1].strip()[0]
-                        PI = '%s %s.' % (First_Name, Last_Name)
-                    else:
-                        PI = line.strip()
-            elif counter == 3:
-                # Third line is the agency name, usually is different
-                # from the name in WOUDC database, it is perfered
-                # for user to pass in agency name
-                if agency_name is not None:
-                    Agency = agency_name
-                else:
-                    Agency = 'UNKNOWN'
-            if counter == 5:
-                # line 5 is program name
-                self.mname = line
-            if counter == 7:
-                # Parsing date information
-                # First date information is data collection date
-                # Second date is data generation date
-                date_tok_temp = line.split(' ')
-                for item in date_tok_temp:
-                    item = item.strip()
-                    if item != '' and item != ' ':
-                        date_tok.append(item)
-                RDATE = '%s-%s-%s' % (date_tok[3], date_tok[4], date_tok[5])
-                RDATE = RDATE.strip()
-                DATE = '%s-%s-%s' % (date_tok[0], date_tok[1], date_tok[2])
-                DATE = DATE.strip()
-                break
+        LOGGER.info('Determining AMES format.')
+        # Check if file is AMES using try-except
+        NDACC = False
+        try:
+            f = nappy.openNAFile(file_content.name)
+        except Exception as err:
+            try:
+                f = nappy.openNAFile(file_content.name, ignore_header_lines=1)
+                NDACC = True
+            except Exception as err:
+                msg = 'Unable to parse file due to: %s' % str(err)
+                LOGGER.error(msg)
+                return False, msg
 
-        if flag_first == 1:
-            counter += 1
-        if flag:
-            element_mapping = {'Pressure': 'Pressure',
-                               'Pressure at observation': 'Pressure',
-                               'Ozone partial pressure': 'O3PartialPressure',
-                               'Temperature': 'Temperature',
-                               'Horizontal wind direction': 'WindDirection',
-                               'Time after launch': 'Duration',
-                               'Geopotential height': 'GPHeight',
-                               'Relative humidity': 'RelativeHumidity',
-                               'Internal temperature': 'SampleTemperature',
-                               'Horizontal wind speed': 'WindSpeed'}
-            element_list = element_mapping.keys()
-            element_index_dict = {}
-            prev_tok_count = 0
-            pote_payload_line_num = 0
-            pote_payload_counter = 0
-            element_index = 0
-            level_counter = 0
-            ib1_index = None  # flag: find ib1 or not
-            ib2_index = None  # flag: find ib2 or not
-            inst_index = None  # flag: find instrument information or not
-            height_reached = False  # flag: find station elvation or not
-            level_data = []
-            inst_raw = None
-            level_reached = False  # flag: metadata header reached or not
-            level_data_reached = False  # flag: metadata value readed or not
-            pressure_reached = False  # flag: payload header reached or not
-            payload_element_done = False  # flag: reached end payload header
-            ecc_inst_reached = False
-            # flag: Does file in specific format that
-            # instrument info followed by a ECC line
-            LOGGER.info('Checking observation condition.')
-            for line in file_content:
-                # Some AMES file use () rather than [], change it
-                line = line.replace('(', '[')
-                line = line.replace(')', ']')
-                if counter == station_location:
-                    bad_station_name = line.strip()
-                    try:
-                        platform_name = util.get_config_value('AMES',
-                                                              bad_station_name)
-                    except Exception, err:
-                        LOGGER.info('Could not get platform name from config due to %s' % str(err)) # noqa
-                        return False, str(err)
-                counter += 1
+        LOGGER.info('Reading file data.')
+        f.readData()
+
+        ScientificAuthority = f.getOriginator()
+        # If Scientific Authority is in form: last, first,
+        # change to first last.
+        if ',' in ScientificAuthority:
+            ScientificAuthority = '%s %s' % (ScientificAuthority.split(',')[1].split()[0].strip(), ScientificAuthority.split(',')[0].strip()) # noqa
+
+        platform_name = f.X[0][0]
+        try:
+            platform_name = util.get_config_value('AMES',
+                                                  platform_name)
+        except Exception, err:
+            LOGGER.info('Could not get platform name from config due to %s' % str(err)) # noqa
+            return False, str(err)
+
+        if NDACC:
+            time = f.ignored_header_lines[0].split()[-1].strip().split()[0][0:8] # noqa
+
+        try:
+            LOGGER.info('Gathering data values.')
+            # If this passes, files are like Boulder.
+            # Otherwise, files are like Lerwick/Neumayer.
+            headers = [x.strip() for x in f.A[-2][0].split()]
+            units = [x.strip() for x in f.A[-1][0].split()]
+            temp_index = headers.index('Temp')
+
+            try:
+                inst_type = f.A[-7][0]
+
+                # Order of metadata fields differs from file to file, but
+                # names are always consistent
+                Lat = str(f.A[f.ANAME.index('Station latitude [decimal degrees N]')][0]) # noqa
+                Long = str(f.A[f.ANAME.index('Station longitude [decimal degrees E] (range: 0.00 - 359.99)')][0]) # noqa
+                Height = str(f.A[f.ANAME.index('Station height [m]')][0])
+                ib1 = str(f.A[f.ANAME.index('Ozone background after exposure to ozone in laboratory Ib1 [microA]')][0]) # noqa
+                ib2 = str(f.A[f.ANAME.index('Ozone background on filter just prior to launch Ib2 [microA]')][0]) # noqa
+                pump_rate = str(f.A[f.ANAME.index('Inverse pump flow rate (s/100 ml)')][0]) # noqa
+                correction_factor = str(f.A[f.ANAME.index('Correction factor (COL2/COL1) (negative: not applied; positive: applied)')][0]) # noqa
+
+                Pressure_list = [str(x) for x in f.V[0][0]]
+                Duration_list = [str(x) for x in f.X[0][1]]
+                SampleTemperature_list = f.V[10][0]
+                O3PP_list = [str(x) for x in f.V[4][0]]
+                WindDir_list = [str(x) for x in f.V[5][0]]
+                WindSpd_list = [str(x) for x in f.V[6][0]]
+
+                Temperature_list = f.V[2][0]
+
                 # Check if temperature is in Kelvin
-                if 'Temperature [K]' in line:
-                    is_kelvin = True
-                    LOGGER.debug('Temperature in file is in Kelvin and will be converted to Celsius.') # noqa
-                if ('Time after launch' in line or
-                   'Pressure at observation' in line):
-                    # Flagging payload header reached
-                    pressure_reached = True
-                if pressure_reached and 'zzzzz' in line:
-                    # flagging payload header ended
-                    payload_element_done = True
-                if ('[' in line and pressure_reached and
-                        not payload_element_done):
-                    # potential payload element
-                    test_str = (line[:line.index('[')]).strip()
-                    if test_str in element_list:
-                        element_index_dict[element_mapping[test_str]] = element_index  # noqa
-                        element_mapping.pop(test_str)
-                    element_index += 1
-                if ecc_inst_reached:
-                    # ecc_inst_reached reached, next line is
-                    # instrument information
-                    inst_raw = line.strip()
-                    ecc_inst_reached = False
-                if line.strip() == 'ECC':
-                    # specific format where 'ECC' followed by instrument info
-                    ecc_inst_reached = True
-                if 'Number of levels' in line:
-                    # metadata header section reached
-                    level_reached = True
-                if level_reached:
-                    level_counter += 1
-                    # Collecting metadata header, and index for specific header
-                    if 'Ozone background after exposure to ozone in laboratory Ib1' in line:  # noqa
-                        ib1_index = level_counter - 1
-                    if 'Ozone background on filter just prior to launch Ib2' in line:  # noqa
-                        ib2_index = level_counter - 1
-                    if ('longitude' in line) or ('Longitude' in line):
-                        long_index = level_counter - 1
-                    if ('latitude' in line) or ('Latitude' in line):
-                        lat_index = level_counter - 1
-                    if 'Station height' in line or 'Elevation' in line:
-                        height_index = level_counter - 1
-                        height_reached = True
-                    if 'Serial number of ECC' in line:
-                        inst_index = level_counter - 1
-                    try:
-                        if 'C' in [x.strip() for x in line.split()] and is_kelvin: # noqa
-                            raise Exception('Mismatched Temperatures:\
-                                            expected Kelvin, found Celsius')
-                    except Exception, err:
-                        msg = 'Mismatched Temperatures: expected Kelvin, found Celsius' # noqa
-                        LOGGER.error(msg)
-                        return False, msg
-                    if len(re.findall('[A-Za-z]+', line)) == 0:
-                        # Metadata value line only contains number
-                        # Potential metadata value
-                        if not level_data_reached:
-                            if line == '':
-                                level_counter -= 1
-                                continue
-                            line_tok = line.split(' ')
-                            if len(line_tok) > 8:
-                                # Metadata value found
-                                level_data_reached = True
-                                data_block_size = level_counter - 1
-                    if level_data_reached:
-                        # Collecting metadata value into list
-                        if (len(level_data) < data_block_size and
-                           line[0] != ' '):
-                            if len(re.findall('[A-Za-z]+', line)) > 0:
-                                # metadata value line with letter is
-                                # corresponde to one header
-                                level_data.append(line.strip())
-                                continue
-                            line_tok = line.split(' ')
-                            # metadata value line with only number cooresponde
-                            # to multiple header, each value seperated by space
-                            for item in line_tok:
-                                item = item.strip()
-                                if item != ' ' and item != '':
-                                    level_data.append(item)
-                        else:
-                            # only payload information starts with space,
-                            # if space found, payload line reached
-                            level_data_reached = False
-                            level_reached = False
-                            # Parse collected metadata, if found
-                            if ib1_index is not None:
-                                ib1 = level_data[ib1_index]
-                            else:
-                                ib1 = ''
-                            if ib2_index is not None:
-                                ib2 = level_data[ib2_index]
-                            else:
-                                ib2 = ''
-                            if inst_index is not None:
-                                inst_raw = level_data[inst_index]
-                            Long = level_data[long_index]
-                            Lat = level_data[lat_index]
-                            if not height_reached:
-                                Height = 'UNKNOWN'
-                            else:
-                                Height = level_data[height_index]
-
-                if (not level_reached and
-                   len(re.findall('[A-Za-z]+', line)) == 0):
-                    # potential payload line
-                    # Walk through this block of statement to find out
-                    # what logic is used to identify payload line
-                    line_tok = line.split()
-                    if len(line_tok) >= 8:
-                        if prev_tok_count == 0:
-                            prev_tok_count = len(line_tok)
-                        if prev_tok_count != 0:
-                            if prev_tok_count != len(line_tok):
-                                prev_tok_count = 0
-                                pote_payload_line_num = 0
-                                pote_payload_counter = 0
-                            else:
-                                prev_tok_count = len(line_tok)
-                        if pote_payload_line_num == 0:
-                            # found starting payload line
-                            pote_payload_line_num = counter
-                        pote_payload_counter += 1
-                        if pote_payload_counter == 10:
-                            break
-                    else:
-                        prev_tok_count = 0
-                        pote_payload_line_num = 0
-                        pote_payload_counter = 0
+                LOGGER.info('Checking temperature units.')
+                if units[temp_index] == 'K':
+                    Temperature_list = [str(x - 273.15) for x in Temperature_list] # noqa
                 else:
-                    prev_tok_count = 0
-                    pote_payload_line_num = 0
-                    pote_payload_counter = 0
+                    Temperature_list = [str(x) for x in Temperature_list]
+
+                temp_index = headers.index('IntT')
+                if units[temp_index] == 'K':
+                    SampleTemperature_list = [str(x - 273.15) for x in SampleTemperature_list] # noqa
+                else:
+                    SampleTemperature_list = [str(x) for x in SampleTemperature_list] # noqa
+            except Exception as err:
+                msg = 'Unable to gather data values due to : %s' % str(err)
+                LOGGER.error(msg)
+                return False, msg
+
+        except Exception as err:
+            LOGGER.info('Gathering data values.')
+            try:
+                time = ''
+
+                # Separate instrument type and model by index of
+                # first non-aplha char.
+                try:
+                    inst_type = f.A[-1][0]
+                    for char in inst_type:
+                        if not char.isalpha():
+                            break
+                    inst_model = inst_type[inst_type.index(char):]
+                    inst_type = inst_type[:inst_type.index(char)]
+                except Exception as err:
+                    inst_model = inst_type = 'UNKNOWN'
+
+                # Order of metadata fields differs from file to file, but
+                # names are always consistent
+                Lat = str(f.A[f.ANAME.index('Latitude of station (decimal degrees)')][0]) # noqa
+                Long = str(f.A[f.ANAME.index('East Longitude of station (decimal degrees)')][0]) # noqa
+                Height = ''
+                ib1 = str(f.A[f.ANAME.index('Background sensor current before cell is exposed to ozone (microamperes)')][0]) # noqa
+                ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes')][0]) # noqa
+                pump_rate = ''
+                correction_factor = str(f.A[f.ANAME.index('Correction factor (COL2A/COL1 or COL2B/COL1) (NOT APPLIED TO DATA)')][0]) # noqa
+
+                Pressure_list = [str(x) for x in f.X[0][1]]
+                Duration_list = [str(x) for x in f.V[0][0]]
+                SampleTemperature_list = f.V[4][0]
+                O3PP_list = [str(x) for x in f.V[5][0]]
+                WindDir_list = [str(x) for x in f.V[6][0]]
+                WindSpd_list = [str(x) for x in f.V[7][0]]
+
+                Temperature_list = f.V[2][0]
+
+                # Check if temperature is in Kelvin
+                LOGGER.info('Checking temperature units.')
+                for header in f.VNAME:
+                    vals = header.split()
+                    if vals[0] == 'Temperature':
+                        if len(vals) == 2:
+                            if vals[-1].strip('()') == 'K':
+                                Temperature_list = [str(x - 273.15) for x in Temperature_list] # noqa
+                            else:
+                                Temperature_list = [str(x) for x in Temperature_list] # noqa
+                        elif len(vals) == 5:
+                            if vals[-1].strip('()') == 'K':
+                                SampleTemperature_list = [str(x - 273.15) for x in SampleTemperature_list] # noqa
+                            else:
+                                SampleTemperature_list = [str(x) for x in SampleTemperature_list] # noqa
+            except Exception as err:
+                msg = 'Unable to gather data values due to : %s' % str(err)
+                LOGGER.error(msg)
+                return False, msg
+
+        # Date components are in a list, convert to date string.
+        LOGGER.info('Converting dates to string.')
+        data_gen_date = '%s-%s-%s' % (f.getFileDates()[1][0],
+                                      '%02d' % f.getFileDates()[1][1],
+                                      '%02d' % f.getFileDates()[1][2])
+        instance_date = '%s-%s-%s' % (f.getFileDates()[0][0],
+                                      '%02d' % f.getFileDates()[0][1],
+                                      '%02d' % f.getFileDates()[0][2])
+
+        GPHeight_list = [str(x) for x in f.V[1][0]]
+        RelativeHumidity_list = [str(x) for x in f.V[3][0]]
+
+        LOGGER.info('Retrieving instrument information.')
+        try:
+            # Separate instrument model and number by index of
+            # first alpha char.
+            inst_model = f.A[-6][0]
+            for char in inst_model:
+                if char.isalpha():
+                    break
+            if inst_model.index(char) == len(inst_model) - 1:
+                inst_number = inst_model
+                inst_model = 'UNKNOWN'
+            else:
+                inst_number = inst_model[inst_model.index(char) + 1:]
+                inst_model = inst_model[:inst_model.index(char) + 1]
+        except Exception as err:
+            inst_model = inst_number = 'UNKNOWN'
+
+        # Zip all data lists together
+        master_list = zip(Pressure_list, O3PP_list, Temperature_list,
+                          WindSpd_list, WindDir_list,
+                          [''] * len(Pressure_list), Duration_list,
+                          GPHeight_list, RelativeHumidity_list,
+                          SampleTemperature_list)
 
         try:
             LOGGER.info('Getting content table information from resource.cfg')
@@ -1430,18 +1348,6 @@ class AMES_2160_converter(converter):
             msg = 'Unable to get Content Info due to : %s' % str(err)
             LOGGER.error(msg)
             return False, msg
-
-        ScientificAuthority = PI
-
-        if Agency == 'UNKNOWN':
-            # if Agency is not passed in by user, and not found in AMES,
-            # looks for agency based on SA name, might return None
-            try:
-                LOGGER.info('Looking for Agency in PI list.')
-                Agency = util.get_NDACC_agency(ScientificAuthority).strip()
-            except Exception, err:
-                msg = 'Unable to find agency due to: %s' % str(err)
-                LOGGER.error(msg)
 
         try:
             LOGGER.info('Getting station metadata from pywoudc.')
@@ -1457,7 +1363,7 @@ class AMES_2160_converter(converter):
             # Therefore, Agency is required to process station metadata
             # Any variable or code relate to geometry is used to access
             # Geometry information returned by pywoudc, not used anymore,
-            # but can be de-commentted to make it work
+            # but can be un-commentted to make it work
             properties_list = []
             # geometry_list = []
             counter = 0
@@ -1470,7 +1376,7 @@ class AMES_2160_converter(converter):
                     # geometry_list.append(geometry)
                     counter = counter + 1
             if counter == 0:
-                LOGGER.warning('Unable to find stationi: %s, start lookup process.') % platform_name  # noqa
+                LOGGER.warning('Unable to find station: %s, start lookup process.' % platform_name)  # noqa
                 try:
                     ID = 'na'
                     Type = 'unknown'
@@ -1490,7 +1396,7 @@ class AMES_2160_converter(converter):
             else:
                 length = 0
                 for item in properties_list:
-                    if item['acronym'].lower() == Agency.lower() or item['contributor_name'].lower() == Agency.lower():  # noqa
+                    if item['acronym'].lower() == agency_name.lower() or item['contributor_name'].lower() == agency_name.lower():  # noqa
                         ID = item['platform_id']
                         Type = item['platform_type']
                         Country = item['country_code']
@@ -1512,7 +1418,7 @@ class AMES_2160_converter(converter):
             Version = '1.0'
 
         try:
-            self.station_info['Data_Generation'] = [RDATE, Agency,
+            self.station_info['Data_Generation'] = [data_gen_date, agency_name,
                                                     Version,
                                                     ScientificAuthority]
         except Exception, err:
@@ -1520,32 +1426,23 @@ class AMES_2160_converter(converter):
             LOGGER.error(msg)
             return False, msg
 
-        Model = 'UNKNOWN'
-        Name = 'ECC'
-        Number = 'UNKNOWN'
         try:
             if 'inst type' in metadata_dict:
-                Name = metadata_dict['inst type']
+                inst_type = metadata_dict['inst type']
             if 'inst number' in metadata_dict:
-                Model = metadata_dict['inst number'].strip()[0:2]
-                if re.search('[a-zA-Z]', Model) is None:
-                    Model = 'UNKNOWN'
-                Number = metadata_dict['inst number'].strip()
-            else:
-                LOGGER.info('Collecting instrument information.')
-                if inst_raw is not None:
-                    Model = inst_raw[:2].strip()
-                    if re.search('[a-zA-Z]', Model) is None:
-                        Model = 'UNKNOWN'
-                    Number = inst_raw.strip()
-            self.station_info['Instrument'] = [Name, Model, Number]
+                inst_model = metadata_dict['inst number'].strip()[0:2]
+                if re.search('[a-zA-Z]', inst_model) is None:
+                    inst_model = 'UNKNOWN'
+                inst_number = metadata_dict['inst number'].strip()
+            self.station_info['Instrument'] = [inst_type, inst_model,
+                                               inst_number]
         except Exception, err:
             msg = 'Unable to get Instrument info due to : %s' % str(err)
             LOGGER.error(msg)
             return False, msg
 
         try:
-            self.station_info['TimeStamp'] = ['+00:00:00', DATE, time]
+            self.station_info['TimeStamp'] = ['+00:00:00', instance_date, time]
         except Exception, err:
             msg = 'Unable to get Timestamp info due to : %s' % str(err)
             LOGGER.error(msg)
@@ -1559,83 +1456,15 @@ class AMES_2160_converter(converter):
             return False, msg
 
         try:
-            self.station_info['Auxillary_Data'] = ['', ib1, ib2, '', '', '',
-                                                   '']
+            self.station_info['Auxiliary_Data'] = ['', ib1, ib2, pump_rate,
+                                                   correction_factor, '', '']
         except Exception, err:
-            msg = 'Unable to get Auxilary info due to : %s' % str(err)
+            msg = 'Unable to get Auxiliary info due to : %s' % str(err)
             LOGGER.error(msg)
             return False, msg
 
-        try:
-            self.station_info['Flight_Summary'] = ['', '', '', '', '', '',
-                                                   '', '', '']
-        except Exception, err:
-            msg = 'Unable to get Flight_Summary info due to : %s' % str(err)
-            LOGGER.error(msg)
-            return False, msg
-
-        # Pick and choose payload data
-        # if user using loads method, file_content is a list,
-        # there is a special logic to threat it if it is a list
-        # (define line_num to 7)
-        line_num = 7
-        LOGGER.info('Collecting payload data.')
-        if pote_payload_line_num != 0:
-            if type(file_content) is not list:
-                file_content.seek(0, 0)
-                line_num = 0
-            for line in file_content:
-                if line == "":
-                    continue
-                line_num += 1
-                temp_data = []
-                if line_num >= pote_payload_line_num:
-                    line_tok = line.split()
-                    if len(line_tok) < 9:
-                        continue
-                    Pressure = ''
-                    Duration = ''
-                    GPHeight = ''
-                    Temperature = ''
-                    RelativeHumidity = ''
-                    SampleTemperature = ''
-                    O3PartialPressure = ''
-                    WindDirection = ''
-                    WindSpeed = ''
-                    LevelCode = ''
-                    if 'Pressure' in element_index_dict.keys():
-                        Pressure = line_tok[element_index_dict['Pressure']]
-                    if 'Duration' in element_index_dict.keys():
-                        Duration = line_tok[element_index_dict['Duration']]
-                    if 'GPHeight' in element_index_dict.keys():
-                        GPHeight = line_tok[element_index_dict['GPHeight']]
-                    if 'Temperature' in element_index_dict.keys():
-                        if is_kelvin:
-                            Temperature = str(float(line_tok[element_index_dict['Temperature']]) - 273.15) # noqa
-                            LOGGER.debug('Converting temperature from: %s K to %s C' % (line_tok[element_index_dict['Temperature']], Temperature)) # noqa
-                        else:
-                            Temperature = line_tok[element_index_dict['Temperature']]  # noqa
-                    if 'RelativeHumidity' in element_index_dict.keys():
-                        RelativeHumidity = line_tok[element_index_dict['RelativeHumidity']]  # noqa
-                    if 'SampleTemperature' in element_index_dict.keys():
-                        if is_kelvin:
-                            SampleTemperature = str(float(line_tok[element_index_dict['SampleTemperature']]) - 273.15) # noqa
-                            LOGGER.debug('Converting temperature from: %s K to %s C' % (line_tok[element_index_dict['SampleTemperature']], SampleTemperature)) # noqa
-                        else:
-                            SampleTemperature = line_tok[element_index_dict['SampleTemperature']]  # noqa
-                    if 'O3PartialPressure' in element_index_dict.keys():
-                        O3PartialPressure = line_tok[element_index_dict['O3PartialPressure']]  # noqa
-                    if 'WindDirection' in element_index_dict.keys():
-                        WindDirection = line_tok[element_index_dict['WindDirection']]  # noqa
-                    if 'WindSpeed' in element_index_dict.keys():
-                        WindSpeed = line_tok[element_index_dict['WindSpeed']]
-
-                    temp_data = [Pressure, O3PartialPressure, Temperature,
-                                 WindSpeed, WindDirection, LevelCode,
-                                 Duration, GPHeight, RelativeHumidity,
-                                 SampleTemperature]
-
-                    self.data_truple.append(temp_data)
+        for sub_list in master_list:
+            self.data_truple.append(sub_list)
 
         return True, 'Parsing Done'
 
@@ -1714,25 +1543,14 @@ class AMES_2160_converter(converter):
             LOGGER.error(msg)
             return False, msg
         try:
-            LOGGER.info('Adding Flight_Summary Table.')
-            ecsv.add_data("FLIGHT_SUMMARY",
-                          ",".join(self.station_info["Flight_Summary"]),
-                          field="IntegratedO3,CorrectionCode,"
-                          "SondeTotalO3,CorrectionFactor,TotalO3,"
-                          "WLCode,ObsType,Instrument,Number")
-        except Exception, err:
-            msg = 'Unable to add Flight_Summary table due to : %s' % str(err)
-            LOGGER.error(msg)
-            return False, msg
-        try:
-            LOGGER.info('Adding Aixillary_Data Table.')
-            ecsv.add_data("AIXILLARY_DATA",
-                          ",".join(self.station_info["Auxillary_Data"]),
+            LOGGER.info('Adding Auxiliary_Data Table.')
+            ecsv.add_data("AUXILIARY_DATA",
+                          ",".join(self.station_info["Auxiliary_Data"]),
                           field="MeteoSonde,ib1,ib2,PumpRate,"
                           "BackgroundCorr,SampleTemperatureType,"
                           "MinutesGroundO3")
         except Exception, err:
-            msg = 'Unable to add Aixillary table due to : %s' % str(err)
+            msg = 'Unable to add Auxiliary table due to : %s' % str(err)
             LOGGER.error(msg)
             return False, msg
         try:
@@ -1758,10 +1576,10 @@ class AMES_2160_converter(converter):
 
 def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=None):  # noqa
     """
-    :parm inpath: full input file path
-    :parm InFormat: Input file format: SHADOZ, AMES-2160, BAS,
+    :param inpath: full input file path
+    :param InFormat: Input file format: SHADOZ, AMES-2160, BAS,
                     AMES-2160-Boulder
-    :parm metadata_dict: directly inputed station metadata
+    :param metadata_dict: directly inputed station metadata
 
     :return ecsv: ext-csv object thats is ready to be dump out.
 
@@ -1849,10 +1667,10 @@ def load(InFormat, inpath, station_name=None, agency_name=None,  metadata_dict=N
 
 def loads(InFormat, str_object, station_name=None, agency_name=None, metadata_dict=None):  # noqa
     """
-    :parm str_obj: string representation of input file
-    :parm InFormat: Input file format: SHADOZ, AMES-2160, BAS,
+    :param str_obj: string representation of input file
+    :param InFormat: Input file format: SHADOZ, AMES-2160, BAS,
                     AMES-2160-Boulder
-    :parm metadata_dict: directly inputed station metadata
+    :param metadata_dict: directly inputed station metadata
 
     :return ecsv: ext-csv object thats is ready to be dump out.
 
@@ -1907,18 +1725,8 @@ def loads(InFormat, str_object, station_name=None, agency_name=None, metadata_di
         return ecsv
 
     elif InFormat.lower() == 'ames-2160':
-        LOGGER.info('Initiatlizing AMES-2160 converter...')
-        converter = AMES_2160_converter()
-        LOGGER.info('parsing file.')
-        status, msg = converter.parser(str_obj, station_name, agency_name, metadata_dict)  # noqa
-        if status is False:
-            LOGGER.error(msg)
-            raise WOUDCFormatParserError(msg)
-        ecsv, msg2 = converter.creater('N/A')
-        if ecsv is False:
-            LOGGER.error(msg2)
-            raise WOUDCFormatCreateExtCsvError(msg2)
-        return ecsv
+        LOGGER.error('AMES requires the use of load, not loads')
+        return None
 
     else:
         LOGGER.error('Unsupported format: %s' % InFormat)
@@ -1928,8 +1736,8 @@ def loads(InFormat, str_object, station_name=None, agency_name=None, metadata_di
 
 def dump(ecsv, outpath):
     """
-    :parm ecsv: ext-csv object that is ready to be printed to outputfile
-    :parm outpath: output file path
+    :param ecsv: ext-csv object that is ready to be printed to outputfile
+    :param outpath: output file path
 
      Print ext-csv object and its information to output file.
     """
@@ -1944,7 +1752,7 @@ def dump(ecsv, outpath):
 
 def dumps(ecsv):
     """
-    :parm ecsv: ext-csv object that is ready to be printed to outputfile
+    :param ecsv: ext-csv object that is ready to be printed to outputfile
 
     Print ext-csv object on to screen.
     """
