@@ -1322,19 +1322,20 @@ class AMES_2160_converter(converter):
             for char in inst_model:
                 if char.isalpha():
                     break
-            if inst_model.index(char) == len(inst_model)-1:
+            if inst_model.index(char) == len(inst_model) - 1:
                 inst_number = inst_model
                 inst_model = 'UNKNOWN'
             else:
-                inst_number = inst_model[inst_model.index(char)+1:]
-                inst_model = inst_model[:inst_model.index(char)+1]
+                inst_number = inst_model[inst_model.index(char) + 1:]
+                inst_model = inst_model[:inst_model.index(char) + 1]
         except Exception as err:
             inst_model = inst_number = 'UNKNOWN'
 
         # Zip all data lists together
         master_list = zip(Pressure_list, O3PP_list, Temperature_list,
-                          WindSpd_list, WindDir_list, ['']*len(Pressure_list),
-                          Duration_list, GPHeight_list, RelativeHumidity_list,
+                          WindSpd_list, WindDir_list,
+                          [''] * len(Pressure_list), Duration_list,
+                          GPHeight_list, RelativeHumidity_list,
                           SampleTemperature_list)
 
         try:
