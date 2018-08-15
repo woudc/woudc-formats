@@ -1,6 +1,6 @@
 pywoudc
 woudc-extcsv
 pyshadoz
-cdat-lite
 numpy
+cdat-lite
 -e git+https://github.com/cedadev/nappy#egg=nappy
