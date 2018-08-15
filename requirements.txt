@@ -1,3 +1,4 @@
 pywoudc
 woudc-extcsv
 pyshadoz
+-e git+https://github.com/cedadev/nappy#egg=nappy
