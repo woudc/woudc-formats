@@ -142,7 +142,7 @@ class Test(unittest.TestCase):
         self.assertTrue("RelativeHumidity" in s.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("SampleTemperature" in s.extcsv_ds["PROFILE$1"].keys())
 
-        with open(shadoz_filename, "r") as f:
+        with open(shadoz_filename) as f:
             counter = 0
             line_counter = 0
             payload_val = 0
@@ -298,7 +298,7 @@ class Test(unittest.TestCase):
         self.assertTrue("RelativeHumidity" in a.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("SampleTemperature" in a.extcsv_ds["PROFILE$1"].keys())
 
-        with open(AMES_filename, 'r') as f:
+        with open(AMES_filename) as f:
             payload = False
             counter = 0
             for line in f:
@@ -376,7 +376,7 @@ class Test(unittest.TestCase):
         self.assertTrue("RelativeHumidity" in b.extcsv_ds["PROFILE$1"].keys())
         self.assertTrue("SampleTemperature" in b.extcsv_ds["PROFILE$1"].keys())
 
-        with open(AMES_filename2, 'r') as f:
+        with open(AMES_filename2) as f:
             payload = False
             counter = 0
             for line in f:
