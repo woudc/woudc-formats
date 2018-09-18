@@ -1198,6 +1198,11 @@ class AMES_2160_converter(converter):
 
         if NDACC:
             time = f.ignored_header_lines[0].split()[-1].strip().split()[0][0:8] # noqa
+        else:
+            # Time in Lerwick files is in decimal hours and needs to be
+            # converted to HH:mm:ss.
+            timeval = f.A[f.ANAME.index('Launch time (Decimal UT hours from 0 hours on day given by DATE)')][0] # noqa
+            time = '%02d:%02d:%02d' % (int(timeval), (timeval*60)%60, (timeval*3600)%60) # noqa
 
         try:
             LOGGER.info('Gathering data values.')
@@ -1249,8 +1254,6 @@ class AMES_2160_converter(converter):
         except Exception as err:
             LOGGER.info('Gathering data values.')
             try:
-                time = ''
-
                 # Separate instrument type and model by index of
                 # first non-aplha char.
                 try:
@@ -1269,7 +1272,10 @@ class AMES_2160_converter(converter):
                 Long = str(f.A[f.ANAME.index('East Longitude of station (decimal degrees)')][0]) # noqa
                 Height = ''
                 ib1 = str(f.A[f.ANAME.index('Background sensor current before cell is exposed to ozone (microamperes)')][0]) # noqa
-                ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes')][0]) # noqa
+                try:
+                    ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes')][0]) # noqa
+                except Exception as err:
+                    ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes)')][0]) # noqa
                 pump_rate = ''
                 correction_factor = str(f.A[f.ANAME.index('Correction factor (COL2A/COL1 or COL2B/COL1) (NOT APPLIED TO DATA)')][0]) # noqa
 
