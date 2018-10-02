@@ -1334,6 +1334,9 @@ class AMES_2160_converter(converter):
             else:
                 inst_number = inst_model[inst_model.index(char) + 1:]
                 inst_model = inst_model[:inst_model.index(char) + 1]
+            # Sometimes files have SPC which is too specific.
+            if inst_type == 'SPC':
+                inst_type = 'ECC'
         except Exception as err:
             inst_model = inst_number = 'UNKNOWN'
 
