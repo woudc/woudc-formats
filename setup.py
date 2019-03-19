@@ -115,10 +115,10 @@ class PyTest(Command):
 # from https://wiki.python.org/moin/Distutils/Cookbook/AutoPackageDiscovery
 def is_package(path):
     """decipher whether path is a Python package"""
-    return (
-        os.path.isdir(path) and
+    return all([
+        os.path.isdir(path),
         os.path.isfile(os.path.join(path, '__init__.py'))
-    )
+    ])
 
 
 def find_packages(path, base=''):
