@@ -339,8 +339,8 @@ class shadoz_converter(converter):
             LOGGER.info('Processing station metadata information.')
             for row in station_metadata['features']:
                 properties = row['properties']
-                if (station == properties['platform_name'] and
-                   Agency == properties['acronym']):
+                if all([station == properties['platform_name'],
+                        Agency == properties['acronym']]):
                     # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for item in header_list:
@@ -371,8 +371,7 @@ class shadoz_converter(converter):
 
             key = ''
             if inst_model == 'UNKNOWN' and inst_number == 'UNKNOWN':
-                if (',' in str(s.metadata['Sonde Instrument, SN']) or
-                   ' ' in str(s.metadata['Sonde Instrument, SN']).strip()):
+                if ',' in str(s.metadata['Sonde Instrument, SN']) or ' ' in str(s.metadata['Sonde Instrument, SN']).strip():  # noqa
                     key = re.split(',| ', str(s.metadata['Sonde Instrument, SN']).strip())  # noqa
                     key = key[len(key) - 1]
                 else:
@@ -1060,12 +1059,7 @@ class BAS_converter(converter):
                 hour = float(item[7])
                 span = float(item[8])
 
-                dataoutput.insert(counter, [item[1] + "/" + item[0] + "/" +
-                                  str(round(float(item[2]) / 365.25 + 1900)),
-                                  "", "", item[3], item[4],
-                                  str(round(hour + 12, 2)),
-                                  str(round(round(hour + 12, 2) + span / 60, 2)),  # noqa
-                                  "", item[5], item[6], ""])
+                dataoutput.insert(counter, [item[1] + "/" + item[0] + "/" + str(round(float(item[2]) / 365.25 + 1900)), "", "", item[3], item[4], str(round(hour + 12, 2)), str(round(round(hour + 12, 2) + span / 60, 2)),  "", item[5], item[6], ""])  # noqa
                 counter = counter + 1
         except Exception as err:
             msg = 'Unable to process data payload due to : %s' % str(err)
