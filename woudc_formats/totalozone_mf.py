@@ -182,8 +182,8 @@ class TotalOzone_MasterFile(object):
                                 if len(row) > 1 and "*" not in row[0]:
                                     if len(row[0]) != 0:
                                         year = row[0].split('-')[0]
-                                        month = row[0].split('-')[1]
-                                        day = row[0].split('-')[2]
+                                        month = row[0].split('-')[1].zfill(2)
+                                        day = row[0].split('-')[2].zfill(2)
                                     if len(row) >= 2:
                                         if len(row[1]) != 0:
                                             WLCode = row[1]
