@@ -434,6 +434,7 @@ class WOUDCextCSVReader(object):
         Read WOUDC extCSV file and objectify
         """
         self.sections = {}
+        fields = []
         f = open(filepath)
         blocks = f.read().split('#')
         # get rid of first element of cruft
