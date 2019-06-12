@@ -216,8 +216,6 @@ class shadoz_converter(converter):
             msg = 'Unable to find a station name mapping in woudc db due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
 
-        station = station.decode('UTF-8')
-
         try:
             data_generation_date = str(s.metadata['SHADOZ format data created']) # noqa
 
@@ -461,19 +459,9 @@ class shadoz_converter(converter):
             return False, msg
 
         try:
-            if self.station_info["Platform"][1] == "436":
-                LOGGER.info('Special treatment for reunion Platform inforamtion.')  # noqa
-                self.station_info["Platform"][3] = self.station_info["Platform"][3].encode('UTF-8')  # noqa
-                self.station_info["Platform"][2] = self.station_info["Platform"][2].encode('UTF-8')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][0], field = 'Type')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][1], field = 'ID')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][2], field = 'Name')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][3], field = 'Country')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][4], field = 'GAW_ID')  # noqa
-            else:
-                LOGGER.info('Adding Platform Table.')
-                ecsv.add_data("PLATFORM",
-                              ",".join(self.station_info["Platform"]))
+            LOGGER.info('Adding Platform Table.')
+            ecsv.add_data("PLATFORM",
+                          ",".join(self.station_info["Platform"]))
         except Exception as err:
             msg = 'Unable to add Platform Table due to: %s' % str(err)
             LOGGER.error(msg)

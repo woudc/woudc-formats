@@ -49,7 +49,7 @@ import logging
 import os
 import re
 import shutil
-from StringIO import StringIO
+from io import StringIO
 import tempfile
 import time
 import zipfile
