@@ -165,13 +165,13 @@ def get_extcsv_value(extcsv, table, field, payload=False):
                 if field in fields:
                     try:
                         value.append(row[fields.index(field)])
-                    except IndexError as err:
+                    except IndexError:
                         msg = 'Empty column for table: %s, field: %s.\
                         Putting in blank' % (table, field)
                         value.append('')
                     except Exception as err:
                         msg = 'Unable to get value for table: %s, field: %s.\
-                        Due to: %s' % (table, field, str(err))
+                            Due to: %s' % (table, field, str(err))
                         LOGGER.error(msg)
                         raise BPSExtCSVValueRetrievalError(msg)
         return value

@@ -278,7 +278,7 @@ class shadoz_converter(converter):
         try:
             idx = str(s.metadata['Radiosonde, SN']).index(',')
             radiosonde = str(s.metadata['Radiosonde, SN'])[0:idx]
-        except Exception as err:
+        except Exception:
             msg = 'Radiosonde invalid value or not found in file'
             LOGGER.error(msg)
 
@@ -1152,7 +1152,7 @@ class AMES_2160_converter(converter):
         NDACC = False
         try:
             f = nappy.openNAFile(file_content.name)
-        except Exception as err:
+        except Exception:
             try:
                 f = nappy.openNAFile(file_content.name, ignore_header_lines=1)
                 NDACC = True
@@ -1233,7 +1233,7 @@ class AMES_2160_converter(converter):
                 LOGGER.error(msg)
                 return False, msg
 
-        except Exception as err:
+        except Exception:
             LOGGER.info('Gathering data values.')
             try:
                 # Separate instrument type and model by index of
@@ -1245,7 +1245,7 @@ class AMES_2160_converter(converter):
                             break
                     inst_model = inst_type[inst_type.index(char):]
                     inst_type = inst_type[:inst_type.index(char)]
-                except Exception as err:
+                except Exception:
                     inst_model = inst_type = 'UNKNOWN'
 
                 # Order of metadata fields differs from file to file, but
@@ -1256,7 +1256,7 @@ class AMES_2160_converter(converter):
                 ib1 = str(f.A[f.ANAME.index('Background sensor current before cell is exposed to ozone (microamperes)')][0]) # noqa
                 try:
                     ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes')][0]) # noqa
-                except Exception as err:
+                except Exception:
                     ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes)')][0]) # noqa
                 pump_rate = ''
                 correction_factor = str(f.A[f.ANAME.index('Correction factor (COL2A/COL1 or COL2B/COL1) (NOT APPLIED TO DATA)')][0]) # noqa
@@ -1319,7 +1319,7 @@ class AMES_2160_converter(converter):
             # Sometimes files have SPC which is too specific.
             if inst_type == 'SPC':
                 inst_type = 'ECC'
-        except Exception as err:
+        except Exception:
             inst_model = inst_number = 'UNKNOWN'
 
         # Zip all data lists together
