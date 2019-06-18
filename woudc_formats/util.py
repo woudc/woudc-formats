@@ -376,7 +376,6 @@ def print_csx(where, csx, dirname=None, host=None):
                 out_file.write('\n')
         except Exception as err:
             filepath = os.path.join(dirname, csv.get_filename())
-            print('ERROR: Unable to create output extended CSV file {}'.format(filepath))  # noqa
             LOGGER.error('Unable to create output extended CSV file {} due to: {}'.format(filepath, err))  # noqa
 
         # close file
@@ -415,8 +414,7 @@ def print_csx(where, csx, dirname=None, host=None):
                 ftp_file.write('\n')
         except Exception as err:
             hostpath = host.path.join(dirname, csv.get_filename())
-            print('ERROR: Unable to write file %s to WOUDC FTP due to {}.' % (hostpath, err))  # noqa
-            LOGGER.error('ERROR: Unable to write file %s to WOUDC FTP due to {}.' % (hostpath, err))  # noqa
+            LOGGER.error('ERROR: Unable to write file {} to WOUDC FTP due to {}.'.format(hostpath, err))  # noqa
 
         # close file
         ftp_file.close()
@@ -465,7 +463,6 @@ class WOUDCextCSVReader(object):
                         i += 1
                     except Exception as err:
                         self.sections[header][field] = None
-                        # print('ERROR: corrupt format.  Section: %s.  Skipping' % header)  # noqa
                         LOGGER.warning('Corrupt format in {}, section {}: {}'.format(filepath, header, err))  # noqa
             else:  # payload
                 buf = StringIO(None)
@@ -499,16 +496,16 @@ class CSX (object):
 
     def view_comments(self):
         for comment in self.comment:
-            print(comment)
+            LOGGER.debug(comment)
 
     def get_comments(self):
         return self.comment
 
     def view_tables(self):
         for table in self.tables:
-            print(table.get_name())
-            print(table.get_header())
-            print(table.data_to_string())
+            LOGGER.debug(table.get_name())
+            LOGGER.debug(table.get_header())
+            LOGGER.debug(table.data_to_string())
 
     def get_tables(self):
         return self.tables
@@ -554,4 +551,4 @@ class CSX (object):
 
         def view_data(self):
             for data in self.data:
-                print(data)
+                LOGGER.debug(data)
