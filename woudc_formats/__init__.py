@@ -278,9 +278,10 @@ class shadoz_converter(converter):
         try:
             idx = str(s.metadata['Radiosonde, SN']).index(',')
             radiosonde = str(s.metadata['Radiosonde, SN'])[0:idx]
-        except Exception:
+        except Exception as err:
             msg = 'Radiosonde invalid value or not found in file'
             LOGGER.error(msg)
+            LOGGER.warning(err)
 
         background_current = ''
         if 'Background current (uA)' in s.metadata:
@@ -335,8 +336,11 @@ class shadoz_converter(converter):
 
         try:
             station_ltn = station.encode('latin1').decode('utf-8')
-        except UnicodeError:
+        except UnicodeError as err:
             station_ltn = ''
+            msg = 'Failed to decode station as Latin1: treating as UTF-8.'
+            LOGGER.warning(err)
+            LOGGER.info(msg)
 
         try:
             LOGGER.info('Processing station metadata information.')
@@ -1159,7 +1163,9 @@ class AMES_2160_converter(converter):
         NDACC = False
         try:
             f = nappy.openNAFile(file_content.name)
-        except Exception:
+        except Exception as err:
+            msg = 'Skipping AMES file header. {}'.format(err)
+            LOGGER.info(msg)
             try:
                 f = nappy.openNAFile(file_content.name, ignore_header_lines=1)
                 NDACC = True
@@ -1240,7 +1246,9 @@ class AMES_2160_converter(converter):
                 LOGGER.error(msg)
                 return False, msg
 
-        except Exception:
+        except Exception as err:
+            msg = 'Parsing instrument data manually. Could not parse by splitting because: {}'.format(err) # noqa
+            LOGGER.warning(msg)
             LOGGER.info('Gathering data values.')
             try:
                 # Separate instrument type and model by index of
@@ -1252,7 +1260,9 @@ class AMES_2160_converter(converter):
                             break
                     inst_model = inst_type[inst_type.index(char):]
                     inst_type = inst_type[:inst_type.index(char)]
-                except Exception:
+                except Exception as err:
+                    msg = 'Unable to resolve instrument model due to: {}'.format(err)  # noqa
+                    LOGGER.warning(err)
                     inst_model = inst_type = 'UNKNOWN'
 
                 # Order of metadata fields differs from file to file, but
@@ -1262,9 +1272,11 @@ class AMES_2160_converter(converter):
                 Height = ''
                 ib1 = str(f.A[f.ANAME.index('Background sensor current before cell is exposed to ozone (microamperes)')][0]) # noqa
                 try:
-                    ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes')][0]) # noqa
-                except Exception:
                     ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes)')][0]) # noqa
+                except Exception as err:
+                    msg = 'Omitting brackets from background current header: {}'.format(err) # noqa
+                    LOGGER.info(msg)
+                    ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes')][0]) # noqa
                 pump_rate = ''
                 correction_factor = str(f.A[f.ANAME.index('Correction factor (COL2A/COL1 or COL2B/COL1) (NOT APPLIED TO DATA)')][0]) # noqa
 
@@ -1326,7 +1338,9 @@ class AMES_2160_converter(converter):
             # Sometimes files have SPC which is too specific.
             if inst_type == 'SPC':
                 inst_type = 'ECC'
-        except Exception:
+        except Exception as err:
+            msg = 'Cannot resolve instrument model due to: {}'.format(err)
+            LOGGER.warning(msg)
             inst_model = inst_number = 'UNKNOWN'
 
         # Zip all data lists together
