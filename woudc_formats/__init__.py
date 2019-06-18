@@ -313,7 +313,7 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Getting station metadata by pywoudc.')
-            station_metadata = client.get_station_metadata(raw=False)
+            station_metadata = client.get_station_metadata()
         except Exception as err:
             msg = 'Unable to get metadata from pywoudc due to: %S' % str(err)
             LOGGER.error(msg)
@@ -332,13 +332,12 @@ class shadoz_converter(converter):
             # this specified information, insert into dictionary
             if item in metadata_dic.keys():
                 temp_dict[item] = metadata_dic[item]
-            print('\n[%s]\n' % temp_dict[item])
 
         try:
             LOGGER.info('Processing station metadata information.')
             LOGGER.info('Searching for %s station %s' % (station, Agency))
             for row in station_metadata['features']:
-                LOGGER.info('Data %s received from Woudc_System' % row['properties'])
+                LOGGER.info('Data received from Woudc_System: station = %s' % row['properties']['platform_name'])  # noqa
                 properties = row['properties']
                 if all([station == properties['platform_name'],
                         Agency == properties['acronym']]):
