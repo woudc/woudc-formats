@@ -335,10 +335,10 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Processing station metadata information.')
-            print('Searching for %s station %s' % (station, Agency))
+            print('Searching for %s station %s' % (station.encode('utf-8'), Agency))
             for row in station_metadata['features']:
                 properties = row['properties']
-                print('%s, %s]' % (properties['platform_name'].encode('utf-8').decode('utf-8'), properties['acronym'].encode('utf-8').decode('utf-8')))  # noqa
+                print('%s, %s]' % (properties['platform_name'].encode('utf-8'), properties['acronym']))  # noqa
                 if all([station == properties['platform_name'],
                         Agency == properties['acronym']]):
                     # Match station record in WOUDC database
