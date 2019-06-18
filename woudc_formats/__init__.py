@@ -334,12 +334,17 @@ class shadoz_converter(converter):
                 temp_dict[item] = metadata_dic[item]
 
         try:
+            station_ltn = station.encode('latin1').decode('utf-8')
+        except UnicodeError:
+            station_ltn = ''
+
+        try:
             LOGGER.info('Processing station metadata information.')
             print('Searching for %s station %s' % (station, Agency))
             for row in station_metadata['features']:
                 properties = row['properties']
                 print('[%s, %s]' % (properties['platform_name'], properties['acronym']))  # noqa
-                if all([station == properties['platform_name'],
+                if all([properties['platform_name'] in [station, station_ltn],
                         Agency == properties['acronym']]):
                     # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
