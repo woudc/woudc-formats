@@ -1,4 +1,7 @@
 environment:
+  global:
+    PYTHONIOENCODING: UTF-8
+
   matrix:
     - PYTHON: "C:\\Python35"
       PYTHON_VERSION: "3.5"
