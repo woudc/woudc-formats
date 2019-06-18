@@ -52,15 +52,15 @@ from time import strptime
 import operator
 import zipfile
 import requests
-import ConfigParser
+from configparser import ConfigParser
 import os
 import csv
 from woudc_extcsv import loads
-from StringIO import StringIO
+from io import StringIO
 from socket import error as SocketError
-from urllib import quote
-from urllib2 import urlopen
-from urllib2 import URLError
+from urllib.parse import quote
+from urllib.request import urlopen
+from urllib.error import URLError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -70,7 +70,7 @@ __DIRPATH = os.path.dirname(os.path.realpath(__file__))
 def get_config_value(section, key, where='config_file'):
     if where == 'config_file':
         filepath = os.path.join(__DIRPATH, 'resource.cfg')
-        config = ConfigParser.ConfigParser()
+        config = ConfigParser()
         config.read(filepath)
         return config.get(section, key)
 
@@ -96,7 +96,7 @@ def get_extcsv(url):
         content = urlopen(url).read()
         return loads(content)
     except (SocketError, URLError) as err:
-        LOGGER.warn(str(err))
+        LOGGER.warning(str(err))
         if err.errno in (
                 errno.ECONNRESET, errno.ECONNREFUSED, errno.ETIMEDOUT):
             time.sleep(5)
@@ -126,7 +126,8 @@ def extract_data(filename, path):
 def zip_file(output, outpath, zipfilename):
     try:
         compression = zipfile.ZIP_DEFLATED
-    except Exception:
+    except Exception as err:
+        LOGGER.warning(err)
         compression = zipfile.ZIP_STORED
     if not os.path.isdir(outpath):
         os.mkdir(outpath)
@@ -166,12 +167,13 @@ def get_extcsv_value(extcsv, table, field, payload=False):
                     try:
                         value.append(row[fields.index(field)])
                     except IndexError as err:
-                        msg = 'Empty column for table: %s, field: %s.\
-                        Putting in blank' % (table, field)
+                        msg = 'Empty column for table %s, field %s.\
+                        Putting in blank due to %s' % (table, field, str(err))
+                        LOGGER.warning(msg)
                         value.append('')
                     except Exception as err:
                         msg = 'Unable to get value for table: %s, field: %s.\
-                        Due to: %s' % (table, field, str(err))
+                            Due to: %s' % (table, field, str(err))
                         LOGGER.error(msg)
                         raise BPSExtCSVValueRetrievalError(msg)
         return value
@@ -254,7 +256,8 @@ def sort_table(table, cols):
 def zip(in_filename, out_filename):
     try:
         compression = zipfile.ZIP_DEFLATED
-    except Exception:
+    except Exception as err:
+        LOGGER.warning(err)
         compression = zipfile.ZIP_STORED
 
     zf = zipfile.ZipFile(out_filename, mode='w')
@@ -371,8 +374,10 @@ def print_csx(where, csx, dirname=None, host=None):
                     else:
                         out_file.write('* %s' % comment)
                 out_file.write('\n')
-        except Exception:
-            print 'ERROR: Unable to create output extended CSV file %s' % (os.path.join(dirname, csx.get_filename()))  # noqa
+        except Exception as err:
+            filepath = os.path.join(dirname, csv.get_filename())
+            print('ERROR: Unable to create output extended CSV file {}'.format(filepath))  # noqa
+            LOGGER.error('Unable to create output extended CSV file {} due to: {}'.format(filepath, err))  # noqa
 
         # close file
         out_file.close()
@@ -408,8 +413,10 @@ def print_csx(where, csx, dirname=None, host=None):
                     else:
                         ftp_file.write('* %s' % comment)
                 ftp_file.write('\n')
-        except Exception:
-            print 'ERROR: Unable to write file %s to WOUDC FTP.' % (host.path.join(dirname, csx.get_filename()))  # noqa
+        except Exception as err:
+            hostpath = host.path.join(dirname, csv.get_filename())
+            print('ERROR: Unable to write file %s to WOUDC FTP due to {}.' % (hostpath, err))  # noqa
+            LOGGER.error('ERROR: Unable to write file %s to WOUDC FTP due to {}.' % (hostpath, err))  # noqa
 
         # close file
         ftp_file.close()
@@ -456,9 +463,10 @@ class WOUDCextCSVReader(object):
                     try:
                         self.sections[header][field] = values[i]
                         i += 1
-                    except Exception:
+                    except Exception as err:
                         self.sections[header][field] = None
-                        # print 'ERROR: corrupt format.  Section: %s.  Skipping' % header  # noqa
+                        # print('ERROR: corrupt format.  Section: %s.  Skipping' % header)  # noqa
+                        LOGGER.warning('Corrupt format in {}, section {}: {}'.format(filepath, header, err))  # noqa
             else:  # payload
                 buf = StringIO(None)
                 w = csv.writer(buf)
@@ -491,16 +499,16 @@ class CSX (object):
 
     def view_comments(self):
         for comment in self.comment:
-            print comment
+            print(comment)
 
     def get_comments(self):
         return self.comment
 
     def view_tables(self):
         for table in self.tables:
-            print table.get_name()
-            print table.get_header()
-            print table.data_to_string()
+            print(table.get_name())
+            print(table.get_header())
+            print(table.data_to_string())
 
     def get_tables(self):
         return self.tables
@@ -546,4 +554,4 @@ class CSX (object):
 
         def view_data(self):
             for data in self.data:
-                print data
+                print(data)

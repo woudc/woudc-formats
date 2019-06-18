@@ -216,8 +216,6 @@ class shadoz_converter(converter):
             msg = 'Unable to find a station name mapping in woudc db due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
 
-        station = station.decode('UTF-8')
-
         try:
             data_generation_date = str(s.metadata['SHADOZ format data created']) # noqa
 
@@ -283,6 +281,7 @@ class shadoz_converter(converter):
         except Exception as err:
             msg = 'Radiosonde invalid value or not found in file'
             LOGGER.error(msg)
+            LOGGER.warning(err)
 
         background_current = ''
         if 'Background current (uA)' in s.metadata:
@@ -315,7 +314,7 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Getting station metadata by pywoudc.')
-            station_metadata = client.get_station_metadata(raw=False)
+            station_metadata = client.get_station_metadata()
         except Exception as err:
             msg = 'Unable to get metadata from pywoudc due to: %S' % str(err)
             LOGGER.error(msg)
@@ -336,18 +335,28 @@ class shadoz_converter(converter):
                 temp_dict[item] = metadata_dic[item]
 
         try:
+            station_ltn = station.encode('latin1').decode('utf-8')
+        except UnicodeError as err:
+            station_ltn = ''
+            msg = 'Failed to decode station as Latin1: treating as UTF-8.'
+            LOGGER.warning(err)
+            LOGGER.info(msg)
+
+        try:
             LOGGER.info('Processing station metadata information.')
             for row in station_metadata['features']:
                 properties = row['properties']
-                if all([station == properties['platform_name'],
+                if all([properties['platform_name'] in [station, station_ltn],
                         Agency == properties['acronym']]):
                     # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
-                    for item in header_list:
+                    for ind in range(len(header_list)):
+                        item = header_list[ind]
                         # Insert data into dictionary only when this
                         # field is empty
                         if temp_dict[item] == '':
-                            temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
+                            temp_dict[item] = properties[pywoudc_header_list[ind]]  # noqa
+                            LOGGER.info('Received %s value %s from Woudc_System.' % (item, properties[pywoudc_header_list[ind]])) # noqa
                     break
             self.station_info['Platform'] = []
 
@@ -461,19 +470,9 @@ class shadoz_converter(converter):
             return False, msg
 
         try:
-            if self.station_info["Platform"][1] == "436":
-                LOGGER.info('Special treatment for reunion Platform inforamtion.')  # noqa
-                self.station_info["Platform"][3] = self.station_info["Platform"][3].encode('UTF-8')  # noqa
-                self.station_info["Platform"][2] = self.station_info["Platform"][2].encode('UTF-8')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][0], field = 'Type')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][1], field = 'ID')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][2], field = 'Name')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][3], field = 'Country')  # noqa
-                ecsv.add_data("PLATFORM", self.station_info["Platform"][4], field = 'GAW_ID')  # noqa
-            else:
-                LOGGER.info('Adding Platform Table.')
-                ecsv.add_data("PLATFORM",
-                              ",".join(self.station_info["Platform"]))
+            LOGGER.info('Adding Platform Table.')
+            ecsv.add_data("PLATFORM",
+                          ",".join(self.station_info["Platform"]))
         except Exception as err:
             msg = 'Unable to add Platform Table due to: %s' % str(err)
             LOGGER.error(msg)
@@ -1165,6 +1164,8 @@ class AMES_2160_converter(converter):
         try:
             f = nappy.openNAFile(file_content.name)
         except Exception as err:
+            msg = 'Skipping AMES file header. {}'.format(err)
+            LOGGER.info(msg)
             try:
                 f = nappy.openNAFile(file_content.name, ignore_header_lines=1)
                 NDACC = True
@@ -1246,6 +1247,8 @@ class AMES_2160_converter(converter):
                 return False, msg
 
         except Exception as err:
+            msg = 'Parsing instrument data manually. Could not parse by splitting because: {}'.format(err) # noqa
+            LOGGER.warning(msg)
             LOGGER.info('Gathering data values.')
             try:
                 # Separate instrument type and model by index of
@@ -1258,6 +1261,8 @@ class AMES_2160_converter(converter):
                     inst_model = inst_type[inst_type.index(char):]
                     inst_type = inst_type[:inst_type.index(char)]
                 except Exception as err:
+                    msg = 'Unable to resolve instrument model due to: {}'.format(err)  # noqa
+                    LOGGER.warning(err)
                     inst_model = inst_type = 'UNKNOWN'
 
                 # Order of metadata fields differs from file to file, but
@@ -1267,9 +1272,11 @@ class AMES_2160_converter(converter):
                 Height = ''
                 ib1 = str(f.A[f.ANAME.index('Background sensor current before cell is exposed to ozone (microamperes)')][0]) # noqa
                 try:
-                    ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes')][0]) # noqa
-                except Exception as err:
                     ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes)')][0]) # noqa
+                except Exception as err:
+                    msg = 'Omitting brackets from background current header: {}'.format(err) # noqa
+                    LOGGER.info(msg)
+                    ib2 = str(f.A[f.ANAME.index('Background sensor current in the end of the pre-flight calibration (microamperes')][0]) # noqa
                 pump_rate = ''
                 correction_factor = str(f.A[f.ANAME.index('Correction factor (COL2A/COL1 or COL2B/COL1) (NOT APPLIED TO DATA)')][0]) # noqa
 
@@ -1332,6 +1339,8 @@ class AMES_2160_converter(converter):
             if inst_type == 'SPC':
                 inst_type = 'ECC'
         except Exception as err:
+            msg = 'Cannot resolve instrument model due to: {}'.format(err)
+            LOGGER.warning(msg)
             inst_model = inst_number = 'UNKNOWN'
 
         # Zip all data lists together

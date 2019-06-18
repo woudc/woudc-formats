@@ -1,15 +1,12 @@
 environment:
   matrix:
-    - PYTHON: "C:\\Python27"
-      PYTHON_VERSION: "2.7.x"
+    - PYTHON: "C:\\Python35"
+      PYTHON_VERSION: "3.5"
       PYTHON_ARCH: "32"
-
-#    - PYTHON: "C:\\Python27-x64"
-#      PYTHON_VERSION: "2.7.x"
-#      PYTHON_ARCH: "64"
 
 install:
   - set PATH=%PYTHON%;%PYTHON%\Scripts;%PATH%
+  - python -m pip install -U pip
   - pip.exe install numpy
   - pip.exe install pyproj==1.9.6
   - pip.exe install --no-deps -r requirements.txt

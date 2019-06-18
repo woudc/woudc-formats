@@ -16,7 +16,7 @@ Writers: WOUDC totalozone [daily summary](https://woudc.org/archive/Summaries/To
 ### Installation Instructions
 
 ## Requirements
-woudc-formats requires Python 2.7, [pywoudc](https://github.com/woudc/pywoudc), [pyshadoz](https://github.com/WMO-ET-WDC/pyshadoz), and [woudc-extcsv](https://github.com/woudc/woudc-extcsv)
+woudc-formats requires Python 3.5, [pywoudc](https://github.com/woudc/pywoudc), [pyshadoz](https://github.com/WMO-ET-WDC/pyshadoz), and [woudc-extcsv](https://github.com/woudc/woudc-extcsv)
 
 ## Dependencies
 See `requirements.txt`

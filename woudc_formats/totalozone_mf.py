@@ -49,7 +49,7 @@ import logging
 import os
 import re
 import shutil
-from StringIO import StringIO
+from io import StringIO
 import tempfile
 import time
 import zipfile
@@ -138,7 +138,8 @@ class TotalOzone_MasterFile(object):
                                 if len(inst_type_id) == 1:
                                     inst_type_id = ' %s' % inst_type_id
                             except Exception as err:
-                                log_file.write('ERROR#E02:There is no instrumet type id for \'%s\' in file %s. Data is ignored\r\n' % (inst_name,os.path.join(dirname, filename)))  # noqa
+                                log_file.write('ERROR#E02: There is no instrument type id for \'%s\' in file %s. Data is ignored\r\n' % (inst_name,os.path.join(dirname, filename)))  # noqa
+                                LOGGER.warning('ERROR E02: Invalid instrument type caused by {}'.format(err))  # noqa
                                 write_output = 0
                                 pass
                         i_num = extCSV.sections['INSTRUMENT']['Number']
@@ -191,7 +192,8 @@ class TotalOzone_MasterFile(object):
                                                 try:
                                                     WLCode  = util.get_config_value('WLCode', WLCode)  # noqa
                                                 except Exception as err:
-                                                    log_file.write('ERROR#E05:There is no one character WLCode code for \'%s\' in file %s. Data is ignored\r\n' % (WLCode,os.path.join(dirname, filename)))  # noqa
+                                                    log_file.write('ERROR#E05:There is no one-character WLCode code for \'%s\' in file %s. Data is ignored\r\n' % (WLCode,os.path.join(dirname, filename)))  # noqa
+                                                    LOGGER.error('E05: Invalid WLCode caused by {}'.format(err))  # noqa
                                                     write_output = 0
                                                     pass
                                         else:
@@ -211,6 +213,7 @@ class TotalOzone_MasterFile(object):
                                                     ObsCode  = util.get_config_value('Obs Code', ObsCode)  # noqa
                                                 except Exception as err:
                                                     log_file.write('ERROR#E06:There is no obs code for \'%s\' in file %s. Data is ignored\r\n' % (ObsCode,os.path.join(dirname, filename)))  # noqa
+                                                    LOGGER.error('E06: Missing observation code caused by {}'.format(err))  # noqa
                                                     write_output = 0
                                                     pass
                                         else:
@@ -223,6 +226,7 @@ class TotalOzone_MasterFile(object):
                                                     write_output = 0
                                             except Exception as err:
                                                 log_file.write('ERROR#E07:Could not round ColumnO3 value of: %s in file %s. Data ignored.\r\n' % (ColumnO3,os.path.join(dirname, filename)))  # noqa
+                                                LOGGER.error('E07: Invalid ColumnO3 value. {}'.format(err))  # noqa
                                                 write_output = 0
                                             if len(ColumnO3) == 1:
                                                 ColumnO3 = '  %s' % ColumnO3  # noqa
@@ -245,6 +249,7 @@ class TotalOzone_MasterFile(object):
                                                     UTC_Begin =  '%.0f' % round (float(UTC_Begin), 0)  # noqa
                                                 except Exception as err:
                                                     log_file.write('ERROR#E08:Could not round UTC_Begin value of: %s in file %s. Data ignored.\r\n' % (UTC_Begin,os.path.join(dirname, filename)))  # noqa
+                                                    LOGGER.error('E08: Invalid UTC_Begin value. {}'.format(err))  # noqa
                                                     write_output = 0
                                                 if int(UTC_Begin) in range(10):  # noqa
                                                     UTC_Begin = '0%s' % UTC_Begin  # noqa
@@ -263,6 +268,7 @@ class TotalOzone_MasterFile(object):
                                                     UTC_End =  '%.0f' % round (float(UTC_End), 0)  # noqa
                                                 except Exception as err:
                                                     log_file.write('ERROR#E09:Could not round UTC_End value of: %s in file %s. Data ignored.\r\n' % (UTC_End,os.path.join(dirname, filename)))  # noqa
+                                                    LOGGER.error('E09: Invalid UTC_End value. {}'.format(err))  # noqa
                                                     write_output = 0
                                                 if int(UTC_End) in range(10):  # noqa
                                                     UTC_End = '0%s' % UTC_End  # noqa
@@ -289,6 +295,7 @@ class TotalOzone_MasterFile(object):
                                                         UTC_End =  '%.0f' % round (float(UTC_End), 0)  # noqa
                                                     except Exception as err:
                                                         log_file.write('ERROR#E09:Could not round UTC_End value of: %s in file %s. Data ignored.\r\n' % (UTC_End,os.path.join(dirname, filename)))  # noqa
+                                                        LOGGER.error('E09: Invalid UTC_End value. {}'.format(err))  # noqa
                                                         write_output = 0
                                                     if int(UTC_End) in range(10):  # noqa
                                                         UTC_End = '0%s' % UTC_End  # noqa
@@ -328,6 +335,7 @@ class TotalOzone_MasterFile(object):
                         log_file.write('ERROR#E12:Could not find DAILY in input file: %s. Data is ignored\r\n' % os.path.join(dirname, filename))  # noqa
                 except Exception as err:
                     print(err)
+                    LOGGER.error(err)
                     log_file.write('ERROR: Unable to process file: {}\n'.format(os.path.join(dirname, filename)))  # noqa
         # data file close
         data_file.close()
