@@ -334,7 +334,6 @@ class TotalOzone_MasterFile(object):
                     else:
                         log_file.write('ERROR#E12:Could not find DAILY in input file: %s. Data is ignored\r\n' % os.path.join(dirname, filename))  # noqa
                 except Exception as err:
-                    print(err)
                     LOGGER.error(err)
                     log_file.write('ERROR: Unable to process file: {}\n'.format(os.path.join(dirname, filename)))  # noqa
         # data file close
@@ -353,4 +352,4 @@ class TotalOzone_MasterFile(object):
 
         # log file close
         log_file.close()
-        print('log file is located here: {}'.format(os.path.abspath('totalOzone_processing_log_{}'.format(current_time))))  # noqa
+        LOGGER.info('log file is located here: {}'.format(os.path.abspath('totalOzone_processing_log_{}'.format(current_time))))  # noqa
