@@ -336,6 +336,7 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Processing station metadata information.')
+            LOGGER.info('Searching for %s station %s' % (station, Agency))
             for row in station_metadata['features']:
                 LOGGER.info('Data %s received from Woudc_System' % row['properties'])
                 properties = row['properties']
