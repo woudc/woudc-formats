@@ -12,6 +12,7 @@ install:
   - pip.exe install --no-deps -r requirements.txt
   - pip.exe install -r requirements-dev.txt
   - python setup.py install
+  - pip freeze
 
 build: off
 

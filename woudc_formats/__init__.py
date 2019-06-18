@@ -332,6 +332,7 @@ class shadoz_converter(converter):
             # this specified information, insert into dictionary
             if item in metadata_dic.keys():
                 temp_dict[item] = metadata_dic[item]
+            print('\n[%s]\n' % temp_dict[item])
 
         try:
             LOGGER.info('Processing station metadata information.')
@@ -339,17 +340,21 @@ class shadoz_converter(converter):
                 properties = row['properties']
                 if all([station == properties['platform_name'],
                         Agency == properties['acronym']]):
+                    print('\n[%s]\n' % properties)
                     # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
-                    for item in header_list:
+                    for ind in range(len(header_list)):
+                        item = header_list[ind]
                         # Insert data into dictionary only when this
                         # field is empty
                         if temp_dict[item] == '':
-                            temp_dict[item] = properties[pywoudc_header_list[header_list.index(item)]]  # noqa
+                            LOGGER.info('Received %s value %s from Woudc_System.' % (item, properties[pywoudc_header_list[ind]])) # noqa
+                            temp_dict[item] = properties[pywoudc_header_list[ind]]  # noqa
                     break
             self.station_info['Platform'] = []
 
             for item in header_list:
+                print('\n%s\n' % temp_dict[item])
                 self.station_info['Platform'].append(temp_dict[item])
 
         except Exception as err:
@@ -460,6 +465,9 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Adding Platform Table.')
+            print('\n\n\n')
+            print(self.station_info['Platform'])
+            print('\n\n\n')
             ecsv.add_data("PLATFORM",
                           ",".join(self.station_info["Platform"]))
         except Exception as err:
