@@ -340,10 +340,8 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Processing station metadata information.')
-            print('Searching for %s station %s' % (station, Agency))
             for row in station_metadata['features']:
                 properties = row['properties']
-                print('[%s, %s]' % (properties['platform_name'], properties['acronym']))  # noqa
                 if all([properties['platform_name'] in [station, station_ltn],
                         Agency == properties['acronym']]):
                     # Match station record in WOUDC database
@@ -353,8 +351,8 @@ class shadoz_converter(converter):
                         # Insert data into dictionary only when this
                         # field is empty
                         if temp_dict[item] == '':
-                            LOGGER.info('Received %s value %s from Woudc_System.' % (item, properties[pywoudc_header_list[ind]])) # noqa
                             temp_dict[item] = properties[pywoudc_header_list[ind]]  # noqa
+                            LOGGER.info('Received %s value %s from Woudc_System.' % (item, properties[pywoudc_header_list[ind]])) # noqa
                     break
             self.station_info['Platform'] = []
 
@@ -469,9 +467,6 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Adding Platform Table.')
-            print('\n\n\n')
-            print(self.station_info['Platform'])
-            print('\n\n\n')
             ecsv.add_data("PLATFORM",
                           ",".join(self.station_info["Platform"]))
         except Exception as err:
