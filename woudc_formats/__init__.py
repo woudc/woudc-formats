@@ -335,13 +335,12 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Processing station metadata information.')
-            LOGGER.info('Searching for %s station %s' % (station, Agency))
+            print('Searching for %s station %s' % (station, Agency))
             for row in station_metadata['features']:
                 properties = row['properties']
-                LOGGER.info('Data received from Woudc_System: station = [%s, %s]' % (properties['platform_name'].encode('utf-8').decode('utf-8'), properties['acronym'].encode('utf-8').decode('utf-8')))  # noqa
+                print('%s, %s]' % (properties['platform_name'].encode('utf-8').decode('utf-8'), properties['acronym'].encode('utf-8').decode('utf-8')))  # noqa
                 if all([station == properties['platform_name'],
                         Agency == properties['acronym']]):
-                    print('\n[%s]\n' % properties)
                     # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for ind in range(len(header_list)):
@@ -355,7 +354,6 @@ class shadoz_converter(converter):
             self.station_info['Platform'] = []
 
             for item in header_list:
-                print('\n%s\n' % temp_dict[item])
                 self.station_info['Platform'].append(temp_dict[item])
 
         except Exception as err:
