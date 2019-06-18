@@ -337,8 +337,8 @@ class shadoz_converter(converter):
             LOGGER.info('Processing station metadata information.')
             LOGGER.info('Searching for %s station %s' % (station, Agency))
             for row in station_metadata['features']:
-                LOGGER.info('Data received from Woudc_System: station = %s' % row['properties']['platform_name'])  # noqa
                 properties = row['properties']
+                LOGGER.info('Data received from Woudc_System: station = [%s]' % properties['platform_name'].encode('utf-8'))  # noqa
                 if all([station == properties['platform_name'],
                         Agency == properties['acronym']]):
                     print('\n[%s]\n' % properties)
