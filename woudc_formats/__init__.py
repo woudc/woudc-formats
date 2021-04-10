@@ -316,7 +316,7 @@ class shadoz_converter(converter):
             LOGGER.info('Getting station metadata by pywoudc.')
             station_metadata = client.get_station_metadata()
         except Exception as err:
-            msg = 'Unable to get metadata from pywoudc due to: %S' % str(err)
+            msg = 'Unable to get metadata from pywoudc due to: %s' % str(err)
             LOGGER.error(msg)
             return False, msg
 
