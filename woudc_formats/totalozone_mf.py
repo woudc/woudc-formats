@@ -54,7 +54,7 @@ import tempfile
 import time
 import zipfile
 
-import util
+from woudc_formats import util
 
 LOGGER = logging.getLogger(__name__)
 
