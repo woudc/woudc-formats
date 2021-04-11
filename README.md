@@ -1,7 +1,7 @@
 [![Build Status](https://github.com/woudc/woudc-formats/workflows/build%20%E2%9A%99%EF%B8%8F/badge.svg)](https://github.com/woudc/woudc-formats/actions)
 [![Downloads this month on PyPI](https://img.shields.io/pypi/dm/woudc-formats.svg)](http://pypi.python.org/pypi/woudc-formats)
 [![Latest release](https://img.shields.io/pypi/v/woudc-formats.svg)](http://pypi.python.org/pypi/woudc-formats)
-[![License](https://img.shields.io/github/license/woudc/woudc-formats.svg)](https://github.com/woudc/woudc-formats)
+[![License](https://img.shields.io/pypi/l/woudc-formats)](https://github.com/woudc/woudc-formats)
 
 # WOUDC Format Converter 
 

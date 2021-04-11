@@ -1,4 +1,3 @@
-# -*- coding: ISO-8859-15 -*-
 # =================================================================
 #
 # Terms and Conditions of Use
@@ -19,7 +18,7 @@
 # those files. Users are asked to read the 3rd Party Licenses
 # referenced with those assets.
 #
-# Copyright (c) 2017 Government of Canada
+# Copyright (c) 2021 Government of Canada
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -44,11 +43,29 @@
 #
 # =================================================================
 
+import io
 import os
-from setuptools import setup, Command
+import re
+from setuptools import Command, find_packages, setup
 
-with open('VERSION.txt') as ff:
-    VERSION = ff.read().strip()
+
+def read(filename, encoding='utf-8'):
+    """read file contents"""
+    full_path = os.path.join(os.path.dirname(__file__), filename)
+    with io.open(full_path, encoding=encoding) as fh:
+        contents = fh.read().strip()
+    return contents
+
+
+def get_package_version():
+    """get version from top-level package init"""
+    version_file = read('woudc_formats/__init__.py')
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
+                              version_file, re.M)
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
 
 # set dependencies
 with open('requirements.txt') as ff:
@@ -56,7 +73,7 @@ with open('requirements.txt') as ff:
     DEPENDENCY_LINKS = []
     for line in ff:
         if 'git+' in line:
-            DEPENDENCY_LINKS.append(line.strip())
+            DEPENDENCY_LINKS.append(line)
         else:
             INSTALL_REQUIRES.append(line.strip())
 
@@ -77,17 +94,9 @@ KEYWORDS = [
     'Masterfile'
 ]
 
-DESCRIPTION = '''
-Python library for converting non-standard formats to
-WOUDC extended CSV format.
-'''
+DESCRIPTION = 'Python library for converting non-standard formats to WOUDC extended CSV format'  # noqa
 
-try:
-    import pypandoc
-    LONG_DESCRIPTION = pypandoc.convert('README.md', 'rst')
-except(IOError, ImportError, OSError):
-    with open('README.md') as f:
-        LONG_DESCRIPTION = f.read()
+LONG_DESCRIPTION = read('README.md')
 
 CONTACT = 'Meteorological Service of Canada, Environment Canada'
 
@@ -112,35 +121,12 @@ class PyTest(Command):
         raise SystemExit(errno)
 
 
-# from https://wiki.python.org/moin/Distutils/Cookbook/AutoPackageDiscovery
-def is_package(path):
-    """decipher whether path is a Python package"""
-    return all([
-        os.path.isdir(path),
-        os.path.isfile(os.path.join(path, '__init__.py'))
-    ])
-
-
-def find_packages(path, base=''):
-    """Find all packages in path"""
-    packages = {}
-    for item in os.listdir(path):
-        directory = os.path.join(path, item)
-        if is_package(directory):
-            if base:
-                module_name = "%(base)s.%(item)s" % vars()
-            else:
-                module_name = item
-            packages[module_name] = directory
-            packages.update(find_packages(directory, module_name))
-    return packages
-
-
 setup(
     name='woudc-formats',
-    version=VERSION,
+    version=get_package_version(),
     description=DESCRIPTION.strip(),
     long_description=LONG_DESCRIPTION,
+    long_description_content_type='text/markdown',
     license='MIT',
     platforms='all',
     keywords=' '.join(KEYWORDS),
@@ -151,7 +137,7 @@ setup(
     url=URL,
     install_requires=INSTALL_REQUIRES,
     dependency_links=DEPENDENCY_LINKS,
-    packages=find_packages('.'),
+    packages=find_packages(),
     package_data={'woudc_formats': ['resource.cfg', 'PI_list.txt']},
     entry_points={
         'console_scripts': [
