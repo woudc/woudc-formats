@@ -1,5 +1,4 @@
-[![Build Status](https://travis-ci.org/woudc/woudc-formats.png?branch=master)](https://travis-ci.org/woudc/woudc-formats)
-[![Build status](https://ci.appveyor.com/api/projects/status/02koln2pe4ap5kvd/branch/master?svg=true)](https://ci.appveyor.com/project/tomkralidis/woudc-formats)
+[![Build Status](https://github.com/woudc/woudc-formats/workflows/build%20%E2%9A%99%EF%B8%8F/badge.svg)](https://github.com/woudc/woudc-formats/actions)
 [![Downloads this month on PyPI](https://img.shields.io/pypi/dm/woudc-formats.svg)](http://pypi.python.org/pypi/woudc-formats)
 [![Latest release](https://img.shields.io/pypi/v/woudc-formats.svg)](http://pypi.python.org/pypi/woudc-formats)
 [![License](https://img.shields.io/github/license/woudc/woudc-formats.svg)](https://github.com/woudc/woudc-formats)
@@ -8,21 +7,22 @@
 
 woudc-formats is a Python package used to perform various transformations
 from/to WOUDC supported formats.
+
 Currently supported features include:
 
-Readers: SHADOZ, BAS, NASA AMES files, Vaisala.
-Writers: WOUDC totalozone [daily summary](https://woudc.org/archive/Summaries/TotalOzone/Daily_Summary/FileFormat_DV.txt) (master file).
+- Readers: SHADOZ, BAS, NASA AMES files, Vaisala.
+- Writers: WOUDC totalozone [daily summary](https://woudc.org/archive/Summaries/TotalOzone/Daily_Summary/FileFormat_DV.txt) (master file).
 
 ### Installation Instructions
 
 ## Requirements
-woudc-formats requires Python 3.5, [pywoudc](https://github.com/woudc/pywoudc), [pyshadoz](https://github.com/WMO-ET-WDC/pyshadoz), and [woudc-extcsv](https://github.com/woudc/woudc-extcsv)
+woudc-formats requires Python 3.6 and above.
 
 ## Dependencies
 See `requirements.txt`
 - [pywoudc](https://github.com/woudc/pywoudc)
 - [woudc-extcsv](https://github.com/woudc/woudc-extcsv)
-- [pyshadoz](https://github.com/WMO-ET-WDC/pyshadoz)
+- [pyshadoz](https://github.com/wmo-cop/pyshadoz)
 
 ## Setup
 ```bash
