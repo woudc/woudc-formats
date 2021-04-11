@@ -27,7 +27,7 @@ jobs:
     - name: run tests ⚙️
       run: python3 setup.py test
     - name: run flake8 ⚙️
-      run: find . -type f -name "*.py" | grep -v build | xargs flake8 --ignore=E402
+      run: find . -type f -name "*.py" | grep -v build | xargs flake8 --ignore=E402 | grep -v "./src"
     - name: build Python package 🏗️
       run: python3 setup.py sdist bdist_wheel --universal
     - name: build Debian package 🏗️
