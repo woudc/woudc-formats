@@ -1,3 +1,11 @@
+woudc-formats (0.3.0) bionic; urgency=low
+
+  * various masterfile generation fixes
+  * upgrade AMES parser to use nappy
+  * various bug fixes
+
+ -- WOUDC <ec.woudc.ec@canada.ca>  Sun, 11 Apr 2021 12:12:40 +0000
+
 woudc-formats (0.2.0) unstable; urgency=low
 
   * Update SHADOZ converter to use pyshadoz package

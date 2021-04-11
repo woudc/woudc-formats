@@ -53,7 +53,7 @@ import ntpath
 from pyshadoz import SHADOZ
 import nappy
 
-__version__ = "0.1.0"
+__version__ = "0.3.0"
 
 LOGGER = logging.getLogger(__name__)
 
