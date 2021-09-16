@@ -447,13 +447,13 @@ class WOUDCextCSVReader(object):
         for b in blocks:
             s = StringIO(b.strip())
             c = csv.reader(s)
-            header = c.next()[0]
+            header = next(c)[0] 
             if header != 'DAILY':  # metadata
                 self.sections[header] = {}
                 self.sections[header]['_raw'] = b.strip()
                 try:
-                    fields = c.next()
-                    values = c.next()
+                    fields = next(c) 
+                    values = next(c) 
                 except StopIteration:
                     pass
                 i = 0
