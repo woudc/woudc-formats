@@ -69,14 +69,14 @@ class TotalOzone_MasterFile(object):
         # Initialization
         write_output = 1
         current_time = (datetime.now()).strftime("%Y_%m_%d")
-        log_file = open('totalOzone_processing_log_%s' % current_time, 'wb')  # noqa
+        log_file = open('totalOzone_processing_log_%s' % current_time, 'w')  # noqa
         data_file = None
         global tmp_filename
         tmp_filename = os.path.join(master_file, 'o3tot.dat')
         if mode == 'overwrite':
-            data_file = open(tmp_filename, 'wb+')
+            data_file = open(tmp_filename, 'w+')
         else:
-            data_file = open(tmp_filename, 'ab+')
+            data_file = open(tmp_filename, 'a+')
         if heading == 'on':
             data_file.write('Platform_ID,Year,Month,Day,Start_Hour,Finish_Hour,Wavelength_Pair,Observation_Type,Total_Column_Ozone_Amount,Ozone_Std_Error,Instrument_Type,Instrument_Number\r\n')  # noqa
 
@@ -163,7 +163,7 @@ class TotalOzone_MasterFile(object):
                         if data is not None:
                             try:
                                 data_rows = csv.reader(data)
-                                data_rows.next()
+                                next(data_rows)
                             except StopIteration:
                                 log_file.write('ERROR#E04:Error reading DAILY block in file %s. Data is ignored\r\n' % os.path.join(dirname, filename))  # noqa
                                 write_output = 0

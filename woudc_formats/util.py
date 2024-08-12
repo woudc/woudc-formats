@@ -160,7 +160,7 @@ def get_extcsv_value(extcsv, table, field, payload=False):
         if table in extcsv.sections.keys():
             body = StringIO(extcsv.sections[table]['_raw'])
             data_rows = csv.reader(body)
-            fields = data_rows.next()
+            fields = next(data_rows)
             value = []
             for row in data_rows:
                 if field in fields:
@@ -447,13 +447,13 @@ class WOUDCextCSVReader(object):
         for b in blocks:
             s = StringIO(b.strip())
             c = csv.reader(s)
-            header = c.next()[0]
+            header = next(c)[0]
             if header != 'DAILY':  # metadata
                 self.sections[header] = {}
                 self.sections[header]['_raw'] = b.strip()
                 try:
-                    fields = c.next()
-                    values = c.next()
+                    fields = next(c)
+                    values = next(c)
                 except StopIteration:
                     pass
                 i = 0
