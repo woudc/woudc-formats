@@ -114,7 +114,7 @@ class shadoz_converter(converter):
                 Press = ''
             else:
                 Press = format(Press, '.3f')
-            O3PP = row[s.get_data_index('O3', 'mPa')]
+            O3PP = row[s.get_data_index('O3_mPa', 'mPa')]
             if (type(O3PP) is str and '*' in O3PP) or str(int(round(float(O3PP)))) == bad_value: # noqa
                 O3PP = ''
             else:
@@ -124,12 +124,12 @@ class shadoz_converter(converter):
                 Temp = ''
             else:
                 Temp = format(Temp, '.3f')
-            WSPD = row[s.get_data_index('W Spd', 'm/s')]
+            WSPD = row[s.get_data_index('Wind_Spd', 'm/s')]
             if (type(WSPD) is str and '*' in WSPD) or str(int(round(float(WSPD)))) == bad_value: # noqa
                 WSPD = ''
             else:
                 WSPD = format(WSPD, '.3f')
-            WDIR = row[s.get_data_index('W Dir')]
+            WDIR = row[s.get_data_index('Wind_Dir')]
             if (type(WDIR) is str and '*' in WDIR) or str(int(round(float(WDIR)))) == bad_value: # noqa
                 WDIR = ''
             else:
@@ -137,7 +137,7 @@ class shadoz_converter(converter):
             Duration = str(row[s.get_data_index('Time', 'sec')])
             if '*' in Duration or str(int(round(float(Duration)))) == bad_value: # noqa
                 Duration = ''
-            GPHeight = row[s.get_data_index('Alt', 'km')]
+            GPHeight = row[s.get_data_index('GeopAlt', 'km')]
             if (type(GPHeight) is str and '*' in GPHeight) or str(int(round(float(GPHeight)))) == bad_value: # noqa
                 GPHeight = ''
             else:
@@ -147,7 +147,7 @@ class shadoz_converter(converter):
                 RelativeHumidity = ''
             else:
                 RelativeHumidity = format(RelativeHumidity, '.3f')
-            SampleTemperature = row[s.get_data_index('T Pump')]
+            SampleTemperature = row[s.get_data_index('TPump')]
             if (type(SampleTemperature) is str and '*' in SampleTemperature) or str(int(round(float(SampleTemperature)))) == bad_value: # noqa
                 SampleTemperature = ''
             else:
@@ -189,6 +189,7 @@ class shadoz_converter(converter):
             station = station_name
         else:
             try:
+                print("M", s.metadata.keys())
                 number = s.metadata['STATION'].index(',')
                 station = s.metadata['STATION'][0:number]
             except Exception as err:
@@ -264,9 +265,9 @@ class shadoz_converter(converter):
                                           launch_date,
                                           launch_time]
 
-        if 'Integrated O3 until EOF (DU)' in s.metadata:
+        if 'Integrated O3 to end of data (DU)' in s.metadata:
             self.station_info['Flight_Summary'] = [
-                str(s.metadata['Integrated O3 until EOF (DU)']),
+                str(s.metadata['Integrated O3 to end of data (DU)']),
                 '', '', '', '', '', '', '', '']
 
         elif 'Final Integrated O3 (DU)' in s.metadata:
@@ -276,9 +277,9 @@ class shadoz_converter(converter):
 
         radiosonde = ''
         try:
-            idx = str(s.metadata['Radiosonde, SN']).index(',')
-            radiosonde = str(s.metadata['Radiosonde, SN'])[0:idx]
-        except Exception as err:
+            idx = str(s.metadata['Radiosonde Serial Number']).index(',')
+            radiosonde = str(s.metadata['Radiosonde Serial Number'])[0:idx]
+        except RuntimeError as err:
             msg = 'Radiosonde invalid value or not found in file'
             LOGGER.error(msg)
             LOGGER.warning(err)
@@ -292,24 +293,24 @@ class shadoz_converter(converter):
                 radiosonde.replace(',', ''),
                 str(s.metadata['Sonde/Sage Climatology(1988-2002)']).replace(',', ''), # noqa
                 background_current.replace(',', ''),
-                str(s.metadata['Pump flow rate (sec/100ml)']).replace(',', ''),
-                str(s.metadata['Applied pump corrections']).replace(',', ''),
+                str(s.metadata['Pump flowrate (sec/100ml)']).replace(',', ''),
+                str(s.metadata['Applied pump efficiency factors']).replace(',', ''),
                 str(s.metadata['KI Solution']).replace(',', '')]
         elif 'Sonde/MLS Climatology(1988-2010)' in s.metadata:
             self.station_info['Auxiliary_Data'] = [
                 radiosonde.replace(',', ''),
                 str(s.metadata['Sonde/MLS Climatology(1988-2010)']).replace(',', ''), # noqa
                 background_current.replace(',', ''),
-                str(s.metadata['Pump flow rate (sec/100ml)']).replace(',', ''),
-                str(s.metadata['Applied pump corrections']).replace(',', ''),
+                str(s.metadata['Pump flowrate (sec/100ml)']).replace(',', ''),
+                str(s.metadata['Applied pump efficiency factors']).replace(',', ''),
                 str(s.metadata['KI Solution']).replace(',', '')]
         else:
             self.station_info['Auxiliary_Data'] = [
                 radiosonde.replace(',', ''),
                 '',
                 background_current.replace(',', ''),
-                str(s.metadata['Pump flow rate (sec/100ml)']).replace(',', ''),
-                str(s.metadata['Applied pump corrections']).replace(',', ''),
+                str(s.metadata['Pump flowrate (sec/100ml)']).replace(',', ''),
+                str(s.metadata['Applied pump efficiency factors']).replace(',', ''),
                 str(s.metadata['KI Solution']).replace(',', '')]
 
         try:
@@ -320,6 +321,7 @@ class shadoz_converter(converter):
             LOGGER.error(msg)
             return False, msg
 
+        print("TOM", station_metadata)
         # Collecting station metadata by using pywoudc
         # Station name and agency name is required to find
         # Station metadata from pywoudc
@@ -331,7 +333,7 @@ class shadoz_converter(converter):
             temp_dict[item] = ''
             # Pre set an empty dictionary, if user passed in
             # this specified information, insert into dictionary
-            if item in metadata_dic.keys():
+            if item in metadata_dic:
                 temp_dict[item] = metadata_dic[item]
 
         try:
@@ -380,12 +382,12 @@ class shadoz_converter(converter):
 
             key = ''
             if inst_model == 'UNKNOWN' and inst_number == 'UNKNOWN':
-                if ',' in str(s.metadata['Sonde Instrument, SN']) or ' ' in str(s.metadata['Sonde Instrument, SN']).strip():  # noqa
-                    key = re.split(',| ', str(s.metadata['Sonde Instrument, SN']).strip())  # noqa
+                if ',' in str(s.metadata['Ozonesonde Instrument']) or ' ' in str(s.metadata['Ozonesonde Instrument']).strip():  # noqa
+                    key = re.split(',| ', str(s.metadata['Ozonesonde Instrument']).strip())  # noqa
                     key = key[len(key) - 1]
                 else:
-                    key = str(s.metadata['Sonde Instrument, SN']).strip()
-                if str(s.metadata['Sonde Instrument, SN']) == bad_value:
+                    key = str(s.metadata['Ozonesonde Instrument']).strip()
+                if str(s.metadata['Ozonesonde Instrument']) == bad_value:
                     inst_model = 'UNKNOWN'
                     inst_number = 'UNKNOWN'
                 else:
