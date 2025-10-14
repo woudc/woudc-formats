@@ -445,12 +445,17 @@ class WOUDCextCSVReader(object):
         # get rid of first element of cruft
         blocks.pop(0)
         for b in blocks:
-            s = StringIO(b.strip())
+            # Remove blank lines before processing
+            lines = [line for line in b.strip().split('\n') if line.strip()]
+            cleaned_block = '\n'.join(lines)
+
+            s = StringIO(cleaned_block)
             c = csv.reader(s)
             header = next(c)[0]
+
             if header != 'DAILY':  # metadata
                 self.sections[header] = {}
-                self.sections[header]['_raw'] = b.strip()
+                self.sections[header]['_raw'] = cleaned_block
                 try:
                     fields = next(c)
                     values = next(c)
@@ -468,7 +473,8 @@ class WOUDCextCSVReader(object):
                 buf = StringIO(None)
                 w = csv.writer(buf)
                 for row in c:
-                    w.writerow(row)
+                    if row:  # Skip empty rows
+                        w.writerow(row)
                 if header not in self.sections:
                     self.sections[header] = {'_raw': buf.getvalue()}
                 else:
