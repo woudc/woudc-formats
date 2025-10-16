@@ -439,11 +439,36 @@ class WOUDCextCSVReader(object):
         Read WOUDC extCSV file and objectify
         """
         self.sections = {}
-        fields = []
-        f = open(filepath)
-        blocks = f.read().split('#')
-        # get rid of first element of cruft
-        blocks.pop(0)
+        self.filepath = filepath
+        self.read_file(filepath)
+
+    def read_file(self, filepath):
+        """
+        Attempts to read a file with various encodings to handle different
+        character sets.
+        """
+        encodings_to_try = ['utf-8', 'iso-8859-1', 'windows-1252']
+        for encoding in encodings_to_try:
+            try:
+                with open(filepath, encoding=encoding) as f:
+                    blocks = f.read().split('#')
+                    # get rid of the first element of cruft
+                    blocks.pop(0)
+                    self.process_blocks(blocks)
+                break
+            except (UnicodeDecodeError, FileNotFoundError) as err:
+                LOGGER.warning(
+                    f"Failed to read file {filepath} with "
+                    f"encoding {encoding}: {err}"
+                )
+        else:
+            LOGGER.error(
+                f"ERROR: Unable to process file: {filepath}. "
+                "All encoding attempts failed."
+            )
+
+    def process_blocks(self, blocks):
+        """ Process the blocks of the file after splitting. """
         for b in blocks:
             # Remove blank lines before processing
             lines = [line for line in b.strip().split('\n') if line.strip()]
@@ -468,9 +493,9 @@ class WOUDCextCSVReader(object):
                         i += 1
                     except Exception as err:
                         self.sections[header][field] = None
-                        LOGGER.warning('Corrupt format in {}, section {}: {}'.format(filepath, header, err))  # noqa
+                        LOGGER.warning('Corrupt format in {}, section {}: {}'.format(self.filepath, header, err))  # noqa
             else:  # payload
-                buf = StringIO(None)
+                buf = StringIO()
                 w = csv.writer(buf)
                 for row in c:
                     if row:  # Skip empty rows
@@ -478,7 +503,7 @@ class WOUDCextCSVReader(object):
                 if header not in self.sections:
                     self.sections[header] = {'_raw': buf.getvalue()}
                 else:
-                    self.sections[header] = {'_raw': self.sections[header]['_raw'] + buf.getvalue()[80:]}  # noqa
+                    self.sections[header]['_raw'] += buf.getvalue()[80:]  # noqa
 
 
 class CSX (object):
