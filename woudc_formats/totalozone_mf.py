@@ -281,6 +281,7 @@ class TotalOzone_MasterFile(object):
                                         ColumnO3 = '%.0f' % round(float(re.findall("[0-9]*.[0-9]*", row[columno3_idx])[0]), 0)
                                         if ColumnO3 == '0':
                                             log_file.write(f"ERROR#E07:ColumnO3 value is {row[columno3_idx]}. Data row omitted\r\n")  # noqa
+                                            num_errors += 1
                                             write_output = 0
                                     except Exception as err:
                                         log_file.write(f"ERROR#E07:Could not round ColumnO3 value of: {row[columno3_idx]} in row {row}. Data row omitted\r\n")  # noqa
@@ -293,8 +294,9 @@ class TotalOzone_MasterFile(object):
                                         ColumnO3 = ' %s' % ColumnO3
                                     # invalid if DU over 1000
                                     elif (int(ColumnO3) >= 1000):
-                                        log_file.write(f"ERROR#E07:ColumnO3 value is questionably large: \'{ColumnO3}\' in row {row}. Data ignored\r\n")
-                                        ColumnO3 = '   '
+                                        log_file.write(f"ERROR#E07:ColumnO3 value is questionably large: \'{ColumnO3}\' in row {row}. Data row omitted\r\n")
+                                        num_errors += 1
+                                        write_output = 0
                                 else:
                                     LOGGER.debug(f"ColumnO3 value of {row[columno3_idx]} is invalid (empty, 0 or negative). Data ignored.")  # noqa
                                     write_output = 0
