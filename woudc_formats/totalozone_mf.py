@@ -160,6 +160,7 @@ class TotalOzone_MasterFile(object):
 
                     if 'DAILY' in extCSV.sections:
                         data = StringIO((extCSV.sections['DAILY']['_raw']).strip())  # noqa
+                        num_daily_rows_written = 0
                         if data is not None:
                             try:
                                 data_rows = csv.reader(data)
@@ -410,6 +411,7 @@ class TotalOzone_MasterFile(object):
                                 if write_output == 1 and ColumnO3 != '   ' and (heading == 'off' or heading is None):
                                     if len(output_line) == 29:
                                         data_file.write(f"{output_line}\r\n")
+                                        num_daily_rows_written += 1
                                     else:
                                         if len(output_line) > 29:
                                             log_file.write(f"ERROR#E10:This output line: \'{output_line}\' exceeds 29 characters from row {row}. Data row omitted\r\n")
@@ -433,9 +435,9 @@ class TotalOzone_MasterFile(object):
                     num_errors += 1
 
                 if (num_errors > 0):
-                    log_file.write(f"DONE but with {num_errors} errors: {filepath}\r\n\r\n")
+                    log_file.write(f"DONE ({num_daily_rows_written} DAILY rows) but with {num_errors} errors: {filepath}\r\n\r\n")
                 else:
-                    log_file.write(f"SUCCESS: {filepath}\r\n\r\n")
+                    log_file.write(f"SUCCESS ({num_daily_rows_written} DAILY rows): {filepath}\r\n\r\n")
 
         # data file close
         data_file.close()
