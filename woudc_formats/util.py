@@ -19,7 +19,7 @@
 # those files. Users are asked to read the 3rd Party Licenses
 # referenced with those assets.
 #
-# Copyright (c) 2015 Government of Canada
+# Copyright (c) 2026 Government of Canada
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -45,22 +45,24 @@
 # =================================================================
 """Utility module to support fetching data from WOUDC WAF or WFS"""
 
+from configparser import ConfigParser
+import csv
 import errno
+from io import StringIO
 import logging
+import operator
+import os
+from socket import error as SocketError
+import sys
 import time
 from time import strptime
-import operator
-import zipfile
-import requests
-from configparser import ConfigParser
-import os
-import csv
-from woudc_extcsv import loads
-from io import StringIO
-from socket import error as SocketError
 from urllib.parse import quote
 from urllib.request import urlopen
 from urllib.error import URLError
+import zipfile
+
+import requests
+from woudc_extcsv import loads
 
 LOGGER = logging.getLogger(__name__)
 
@@ -69,21 +71,21 @@ __DIRPATH = os.path.dirname(os.path.realpath(__file__))
 
 def get_config_value(section, key, where='config_file'):
     if where == 'config_file':
-        filepath = os.path.join(__DIRPATH, 'resource.cfg')
+        filepath = os.path.join(__DIRPATH, 'resources', 'resource.cfg')
         config = ConfigParser()
         config.read(filepath)
         return config.get(section, key)
 
 
 def get_NDACC_agency(PI):
-    with open(os.path.join(__DIRPATH, 'PI_list.txt')) as ff:
+    with open(os.path.join(__DIRPATH, 'resources', 'PI_list.txt')) as ff:
         for line in ff.readlines():
             if PI in line:
                 return line.split(',')[1].strip()
 
 
 def get_NDACC_station(station):
-    with open(os.path.join(__DIRPATH, 'Stations_list.txt')) as ff:
+    with open(os.path.join(__DIRPATH, 'resources', 'Stations_list.txt')) as ff:
         for line in ff.readlines():
             if station in line:
                 return line.split(',')[1], line.split(',')[2]
@@ -179,22 +181,18 @@ def get_extcsv_value(extcsv, table, field, payload=False):
         return value
 
 
-def setup_logger(logfile, loglevel):
+def setup_logger(loglevel='NOTSET', logfile=None):
     """
     Setup logging mechanism
 
-    :param logfile: path to log file
     :param loglevel: logging level
+    :param logfile: path to log file
     """
 
-    # regular logging format
-    msg_format = '[%(asctime)s] [%(levelname)s] file=%(pathname)s \
-    line=%(lineno)s module=%(module)s function=%(funcName)s [%(message)s]'
-
-    # UAT logging format
-    # msg_format = '[%(message)s]'
-
-    datetime_format = '%a, %d %b %Y %H:%M:%S'
+    date_format = '%Y-%m-%dT%H:%M:%SZ'
+    msg_format = ('[%(asctime)s] [%(levelname)s] file=%(pathname)s '
+                  'line=%(lineno)s module=%(module)s '
+                  'function=%(funcName)s [%(message)s]')
 
     loglevels = {
         'CRITICAL': logging.CRITICAL,
@@ -205,10 +203,18 @@ def setup_logger(logfile, loglevel):
         'NOTSET': logging.NOTSET
     }
 
-    logging.basicConfig(filename=logfile,
-                        format=msg_format,
-                        datefmt=datetime_format,
-                        level=loglevels[loglevel])
+    logger_args = {
+        'format': msg_format,
+        'datefmt': date_format,
+        'level': loglevels[loglevel]
+    }
+
+    if logfile is not None:
+        logger_args['filename'] = logfile
+    else:
+        logger_args['stream'] = sys.stdout
+
+    logging.basicConfig(**logger_args)
 
 
 def BPSExtCSVValueRetrievalError(Exception):
@@ -433,7 +439,7 @@ def average(data_list):
     return float(sum(data_list)) / len(data_list)
 
 
-class WOUDCextCSVReader(object):
+class WOUDCextCSVReader:
     def __init__(self, filepath):
         """
         Read WOUDC extCSV file and objectify
@@ -506,7 +512,7 @@ class WOUDCextCSVReader(object):
                     self.sections[header]['_raw'] += buf.getvalue()[80:]  # noqa
 
 
-class CSX (object):
+class CSX:
 
     def __init__(self):
         self.tables = []
@@ -541,7 +547,7 @@ class CSX (object):
     def get_tables(self):
         return self.tables
 
-    class Table(object):
+    class Table:
 
         def __init__(self):
             self.name = None

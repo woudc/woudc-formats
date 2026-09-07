@@ -59,7 +59,7 @@ from woudc_formats import util
 LOGGER = logging.getLogger(__name__)
 
 
-class TotalOzone_MasterFile(object):
+class TotalOzone_MasterFile:
 
     def __init__(self):
         pass
@@ -167,8 +167,9 @@ class TotalOzone_MasterFile(object):
                                 header_row = next(data_rows)
                                 expected_columns = len(header_row)
 
-                                # Create a mapping of column names to indices for robustness
-                                col_map = {col.strip(): idx for idx, col in enumerate(header_row)}
+                                # Create a mapping of column names to
+                                # indices for robustness
+                                col_map = {col.strip(): idx for idx, col in enumerate(header_row)}  # noqa
                             except StopIteration:
                                 log_file.write(f"ERROR#E04:Error reading DAILY block in file {filepath}. Data omitted\r\n")  # noqa
                                 num_errors += 1
@@ -180,7 +181,8 @@ class TotalOzone_MasterFile(object):
                                     continue
 
                                 # Normalize row length to match header
-                                row = self.normalize_csv_row(row, expected_columns)
+                                row = self.normalize_csv_row(
+                                    row, expected_columns)
 
                                 # Initialize expected variables
                                 year = '    '
@@ -205,25 +207,27 @@ class TotalOzone_MasterFile(object):
                                 utc_mean_idx = col_map.get('UTC_Mean', 7)
                                 nobs_idx = col_map.get('nObs', 8)
 
-                                # Check for rows with only date (like "2020-01-01" with no data)
+                                # Check for rows with only date
+                                # (like "2020-01-01" with no data)
                                 if len(row[0]) != 0 and "*" not in row[0]:
                                     try:
                                         year = row[date_idx].split('-')[0]
-                                        month = row[date_idx].split('-')[1].zfill(2)
-                                        day = row[date_idx].split('-')[2].zfill(2)
+                                        month = row[date_idx].split('-')[1].zfill(2)  # noqa
+                                        day = row[date_idx].split('-')[2].zfill(2)  # noqa
                                     except (IndexError, ValueError):
                                         log_file.write(
-                                            f"ERROR#E12:Invalid date format: {row[date_idx]} in row {row}. "
+                                            f"ERROR#E12:Invalid date format: {row[date_idx]} in row {row}. "  # noqa
                                             "Data ignored\r\n"
                                         )
                                         num_errors += 1
                                         continue
 
-                                    # Check if this is a data-less row (only has date)
-                                    has_data = any(row[i].strip() for i in range(1, len(row)))
+                                    # Check if this is a data-less row
+                                    # (only has date)
+                                    has_data = any(row[i].strip() for i in range(1, len(row)))  # noqa
                                     if not has_data:
                                         log_file.write(
-                                            f"WARNING:Row with date {row[date_idx]} has no data. Data ignored\r\n"
+                                            f"WARNING:Row with date {row[date_idx]} has no data. Data ignored\r\n"  # noqa
                                         )
                                         continue
                                 else:
@@ -233,18 +237,23 @@ class TotalOzone_MasterFile(object):
                                 # WLCode processing
                                 if wlcode_idx < len(row) and len(row[wlcode_idx]) != 0:  # noqa
                                     WLCode = row[wlcode_idx]
-                                    # Strip leading zeros if WLCode is numeric and more than one character long
+                                    # Strip leading zeros if WLCode is numeric
+                                    # and more than one character long
                                     if len(WLCode) > 1 and WLCode.isdigit():
-                                        WLCode = str(int(WLCode))  # Strip leading zeros
+                                        # Strip leading zeros
+                                        WLCode = str(int(WLCode))
 
                                     if len(WLCode) > 1:
                                         try:
-                                            WLCode = util.get_config_value('WLCode', WLCode)
+                                            WLCode = util.get_config_value(
+                                                'WLCode', WLCode)
                                         except Exception as err:
-                                            log_file.write(f"ERROR#E05:There is no one-character WLCode code for '{WLCode}' in row {row}. Data ignored\r\n")
+                                            log_file.write(f"ERROR#E05:There is no one-character WLCode code for '{WLCode}' in row {row}. Data ignored\r\n")  # noqa
                                             num_errors += 1
-                                            LOGGER.error('E05: Invalid WLCode caused by {}'.format(err))
-                                            WLCode = ' '  # set as empty instead of omitting row
+                                            LOGGER.error('E05: Invalid WLCode caused by {}'.format(err))  # noqa
+                                            # set as empty instead of
+                                            # omitting row
+                                            WLCode = ' '
                                             # write_output = 0
                                 else:
                                     # Default WLCode based on instrument
@@ -266,12 +275,15 @@ class TotalOzone_MasterFile(object):
                                     ObsCode = row[obscode_idx]
                                     if not ObsCode.isdigit() or len(ObsCode) != 1:  # noqa
                                         try:
-                                            ObsCode = util.get_config_value('Obs Code', ObsCode)
+                                            ObsCode = util.get_config_value(
+                                                'Obs Code', ObsCode)
                                         except Exception as err:
-                                            log_file.write(f"ERROR#E06:There is no obs code for \'{ObsCode}\' in row {row}. Data ignored\r\n")
+                                            log_file.write(f"ERROR#E06:There is no obs code for \'{ObsCode}\' in row {row}. Data ignored\r\n")  # noqa
                                             num_errors += 1
-                                            LOGGER.error('E06: Missing observation code caused by {}'.format(err))
-                                            ObsCode = ' '  # set as empty instead of omitting row
+                                            LOGGER.error('E06: Missing observation code caused by {}'.format(err))  # noqa
+                                            # set as empty instead of
+                                            # omitting row
+                                            ObsCode = ' '
                                             # write_output = 0
                                 else:
                                     ObsCode = '9'
@@ -279,7 +291,7 @@ class TotalOzone_MasterFile(object):
                                 # ColumnO3 processing
                                 if columno3_idx < len(row) and len(row[columno3_idx]) != 0 and row[columno3_idx] != '0.0' and row[columno3_idx] != '0' and "-" not in row[columno3_idx]:  # noqa
                                     try:
-                                        ColumnO3 = '%.0f' % round(float(re.findall("[0-9]*.[0-9]*", row[columno3_idx])[0]), 0)
+                                        ColumnO3 = '%.0f' % round(float(re.findall("[0-9]*.[0-9]*", row[columno3_idx])[0]), 0)  # noqa
                                         if ColumnO3 == '0':
                                             log_file.write(f"ERROR#E07:ColumnO3 value is {row[columno3_idx]}. Data row omitted\r\n")  # noqa
                                             num_errors += 1
@@ -287,7 +299,7 @@ class TotalOzone_MasterFile(object):
                                     except Exception as err:
                                         log_file.write(f"ERROR#E07:Could not round ColumnO3 value of: {row[columno3_idx]} in row {row}. Data row omitted\r\n")  # noqa
                                         num_errors += 1
-                                        LOGGER.error('E07: Invalid ColumnO3 value. {}'.format(err))
+                                        LOGGER.error('E07: Invalid ColumnO3 value. {}'.format(err))  # noqa
                                         write_output = 0
                                     if len(ColumnO3) == 1:
                                         ColumnO3 = '  %s' % ColumnO3
@@ -295,7 +307,7 @@ class TotalOzone_MasterFile(object):
                                         ColumnO3 = ' %s' % ColumnO3
                                     # invalid if DU over 1000
                                     elif (int(ColumnO3) >= 1000):
-                                        log_file.write(f"ERROR#E07:ColumnO3 value is questionably large: \'{ColumnO3}\' in row {row}. Data row omitted\r\n")
+                                        log_file.write(f"ERROR#E07:ColumnO3 value is questionably large: \'{ColumnO3}\' in row {row}. Data row omitted\r\n")  # noqa
                                         num_errors += 1
                                         write_output = 0
                                 else:
@@ -306,7 +318,7 @@ class TotalOzone_MasterFile(object):
                                 if utc_begin_idx < len(row) and len(row[utc_begin_idx]) != 0:  # noqa
                                     UTC_Begin = row[utc_begin_idx]
                                     # rare case match if in HH:MM:SS format
-                                    hhmmss_pattern = re.match(r'^(\d{2}):(\d{2}):(\d{2})$', UTC_Begin)
+                                    hhmmss_pattern = re.match(r'^(\d{2}):(\d{2}):(\d{2})$', UTC_Begin)  # noqa
                                     if hhmmss_pattern:
                                         # take just the hour part
                                         UTC_Begin = hhmmss_pattern.group(1)
@@ -319,20 +331,20 @@ class TotalOzone_MasterFile(object):
                                             UTC_Begin = '00'
                                     else:
                                         try:
-                                            UTC_Begin = '%.0f' % round(float(UTC_Begin), 0)
+                                            UTC_Begin = '%.0f' % round(float(UTC_Begin), 0)  # noqa
                                             if int(UTC_Begin) in range(10):
                                                 UTC_Begin = '0%s' % UTC_Begin
                                         except Exception as err:
-                                            log_file.write(f"ERROR#E08:Could not round UTC_Begin value of: {UTC_Begin} in row {row}. Data row omitted\r\n")
+                                            log_file.write(f"ERROR#E08:Could not round UTC_Begin value of: {UTC_Begin} in row {row}. Data row omitted\r\n")  # noqa
                                             num_errors += 1
-                                            LOGGER.error('E08: Invalid UTC_Begin value. {}'.format(err))
+                                            LOGGER.error('E08: Invalid UTC_Begin value. {}'.format(err))  # noqa
                                             write_output = 0
 
                                 # UTC_End processing
                                 if utc_end_idx < len(row) and len(row[utc_end_idx]) != 0:  # noqa
                                     UTC_End = row[utc_end_idx]
                                     # rare case match if in HH:MM:SS format
-                                    hhmmss_pattern = re.match(r'^(\d{2}):(\d{2}):(\d{2})$', UTC_End)
+                                    hhmmss_pattern = re.match(r'^(\d{2}):(\d{2}):(\d{2})$', UTC_End)  # noqa
                                     if hhmmss_pattern:
                                         # take just the hour part
                                         UTC_End = hhmmss_pattern.group(1)
@@ -345,20 +357,21 @@ class TotalOzone_MasterFile(object):
                                             UTC_End = '00'
                                     else:
                                         try:
-                                            UTC_End = '%.0f' % round(float(UTC_End), 0)
+                                            UTC_End = '%.0f' % round(float(UTC_End), 0)  # noqa
                                             if int(UTC_End) in range(10):
                                                 UTC_End = '0%s' % UTC_End
                                         except Exception as err:
-                                            log_file.write(f"ERROR#E09:Could not round UTC_End value of: {UTC_End} in row {row}. Data row omitted\r\n")
+                                            log_file.write(f"ERROR#E09:Could not round UTC_End value of: {UTC_End} in row {row}. Data row omitted\r\n")  # noqa
                                             num_errors += 1
-                                            LOGGER.error('E09: Invalid UTC_End value. {}'.format(err))
+                                            LOGGER.error('E09: Invalid UTC_End value. {}'.format(err))  # noqa
                                             write_output = 0
 
-                                # UTC_Mean processing (and fallback for UTC_End)
+                                # UTC_Mean processing
+                                # and fallback for UTC_End
                                 if utc_mean_idx < len(row) and len(row[utc_mean_idx]) != 0:  # noqa
                                     UTC_Mean = row[utc_mean_idx]
                                     # rare case match if in HH:MM:SS format
-                                    hhmmss_pattern = re.match(r'^(\d{2}):(\d{2}):(\d{2})$', UTC_Mean)
+                                    hhmmss_pattern = re.match(r'^(\d{2}):(\d{2}):(\d{2})$', UTC_Mean)  # noqa
                                     if hhmmss_pattern:
                                         # take just the hour part
                                         UTC_End = hhmmss_pattern.group(1)
@@ -389,7 +402,7 @@ class TotalOzone_MasterFile(object):
                                                 write_output = 0
 
                                 # nObs processing
-                                if nobs_idx < len(row) and len(row[nobs_idx]) != 0 and row[nobs_idx] != '-':
+                                if nobs_idx < len(row) and len(row[nobs_idx]) != 0 and row[nobs_idx] != '-':  # noqa
                                     nObs = row[nobs_idx]
                                     if len(nObs) > 2 and "-" not in nObs:
                                         nObs = nObs[:2]
@@ -404,26 +417,26 @@ class TotalOzone_MasterFile(object):
 
                                 # Build output string
                                 if heading == 'off' or heading is None:
-                                    output_line = '%s%s%s%s%s%s%s%s%s%s%s%s' % (platform_id, year, month, day, UTC_Begin, UTC_End, WLCode, ObsCode, ColumnO3, ozone_std_error, inst_type_id, inst_number)
+                                    output_line = '%s%s%s%s%s%s%s%s%s%s%s%s' % (platform_id, year, month, day, UTC_Begin, UTC_End, WLCode, ObsCode, ColumnO3, ozone_std_error, inst_type_id, inst_number)  # noqa
                                 else:
-                                    output_line_header = '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' % (platform_id, year, month, day, UTC_Begin, UTC_End, WLCode, ObsCode, ColumnO3, ozone_std_error, inst_type_id, inst_number)
+                                    output_line_header = '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s' % (platform_id, year, month, day, UTC_Begin, UTC_End, WLCode, ObsCode, ColumnO3, ozone_std_error, inst_type_id, inst_number)  # noqa
 
-                                if write_output == 1 and ColumnO3 != '   ' and (heading == 'off' or heading is None):
+                                if write_output == 1 and ColumnO3 != '   ' and (heading == 'off' or heading is None):  # noqa
                                     if len(output_line) == 29:
                                         data_file.write(f"{output_line}\r\n")
                                         num_daily_rows_written += 1
                                     else:
                                         if len(output_line) > 29:
-                                            log_file.write(f"ERROR#E10:This output line: \'{output_line}\' exceeds 29 characters from row {row}. Data row omitted\r\n")
+                                            log_file.write(f"ERROR#E10:This output line: \'{output_line}\' exceeds 29 characters from row {row}. Data row omitted\r\n")  # noqa
                                         else:
-                                            log_file.write(f"ERROR#E11:This output line: \'{output_line}\' is less than 29 characters from row {row}. Data row omitted\r\n")
+                                            log_file.write(f"ERROR#E11:This output line: \'{output_line}\' is less than 29 characters from row {row}. Data row omitted\r\n")  # noqa
                                         num_errors += 1
 
                                 if heading == 'on':
-                                    data_file.write(f"{output_line_header}\r\n")
+                                    data_file.write(f"{output_line_header}\r\n")  # noqa
 
                                 if write_output == 0:
-                                    LOGGER.debug(f"Output line was not written to master file for row {row} from file {filepath}\r\n")
+                                    LOGGER.debug(f"Output line was not written to master file for row {row} from file {filepath}\r\n")  # noqa
 
                                 write_output = 1
                     else:
@@ -435,9 +448,9 @@ class TotalOzone_MasterFile(object):
                     num_errors += 1
 
                 if (num_errors > 0):
-                    log_file.write(f"DONE ({num_daily_rows_written} DAILY rows) but with {num_errors} errors: {filepath}\r\n\r\n")
+                    log_file.write(f"DONE ({num_daily_rows_written} DAILY rows) but with {num_errors} errors: {filepath}\r\n\r\n") # noqa
                 else:
-                    log_file.write(f"SUCCESS ({num_daily_rows_written} DAILY rows): {filepath}\r\n\r\n")
+                    log_file.write(f"SUCCESS ({num_daily_rows_written} DAILY rows): {filepath}\r\n\r\n")  # noqa
 
         # data file close
         data_file.close()

@@ -53,7 +53,7 @@ from woudc_formats.util import setup_logger
 logfile = 'PATH TO LOG FILE'
 loglevel = 'DEBUG'
 
-setup_logger(logfile, loglevel)
+setup_logger(loglevel, logfile)
 LOGGER = logging.getLogger(__name__)
 
 outpath = 'PATH TO OUTPUT EXT-CSV FILE'
