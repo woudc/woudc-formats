@@ -30,6 +30,7 @@ classifiers = [
 ]
 dependencies = [
     "nappy",
+    "numpy",
     "pyshadoz",
     "pywoudc",
     "woudc-extcsv"
