@@ -36,7 +36,7 @@ pip3 install .
 
 ### Command Line Interface
 ```bash
-usage: woudc-formats.py --format {SHADOZ, BAS, AMES-2160, Vaisala, totalozone-masterfile} --inpath PATH/FILENAME --logfile PATH/LOGFILE --loglevel {DEBUG, CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET}
+usage: woudc-formats --format {SHADOZ, BAS, AMES-2160, Vaisala, totalozone-masterfile} --inpath PATH/FILENAME --logfile PATH/LOGFILE --loglevel {DEBUG, CRITICAL, ERROR, WARNING, INFO, DEBUG, NOTSET}
 
 Required Arguments:
     --format: indicate input file format
@@ -77,12 +77,12 @@ if ecsv is not None:
 
 ### Running
 ```bash
-woudc-formats.py --format SHADOZ --inpath ./bin/SAMPLE.dat --outpath ./bin/SAMPLE.csv --logfile ./bin/LOG.log --loglevel DEBUG
-woudc-formats.py --format totalozone-masterfile --inpath <full local or web path to totalozone snapshot> --outpath <output path> --loglevel <log level> --logfile <log file>
-woudc-formats.py --format AMES-2160 --inpath <full local path to AMES file> --outpath <output path> --loglevel <log level> --logfile <log file> --agency XXX --metadata '{"SA": "XXX", "inst type": "ECC", "inst number": "6A3412"}'
+woudc-formats --format SHADOZ --inpath ./bin/SAMPLE.dat --outpath ./bin/SAMPLE.csv --logfile ./bin/LOG.log --loglevel DEBUG
+woudc-formats --format totalozone-masterfile --inpath <full local or web path to totalozone snapshot> --outpath <output path> --loglevel <log level> --logfile <log file>
+woudc-formats --format AMES-2160 --inpath <full local path to AMES file> --outpath <output path> --loglevel <log level> --logfile <log file> --agency XXX --metadata '{"SA": "XXX", "inst type": "ECC", "inst number": "6A3412"}'
 
 For Agency 'AWI-NM':
-woudc-formats.py --format AMES-2160 --inpath INPATH --logfile log.log --loglevel DEBUG --agency AWI-NM
+woudc-formats --format AMES-2160 --inpath INPATH --logfile log.log --loglevel DEBUG --agency AWI-NM
 ```
 
 ## Development
