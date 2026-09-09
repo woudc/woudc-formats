@@ -1,7 +1,4 @@
-[![Build Status](https://github.com/woudc/woudc-formats/workflows/build%20%E2%9A%99%EF%B8%8F/badge.svg)](https://github.com/woudc/woudc-formats/actions)
-[![Downloads this month on PyPI](https://img.shields.io/pypi/dm/woudc-formats.svg)](http://pypi.python.org/pypi/woudc-formats)
-[![Latest release](https://img.shields.io/pypi/v/woudc-formats.svg)](http://pypi.python.org/pypi/woudc-formats)
-[![License](https://img.shields.io/pypi/l/woudc-formats)](https://github.com/woudc/woudc-formats)
+[![Build Status](https://github.com/woudc/woudc-formats/workflows/build%20%E2%9A%99%EF%B8%8F/badge.svg)](https:    //github.com/woudc/woudc-formats/actions)
 
 # WOUDC Format Converter 
 
@@ -10,24 +7,29 @@ from/to WOUDC supported formats.
 
 Currently supported features include:
 
-- Readers: SHADOZ, BAS, NASA AMES files, Vaisala.
-- Writers: WOUDC totalozone [daily summary](https://woudc.org/archive/Summaries/TotalOzone/Daily_Summary/FileFormat_DV.txt) (master file).
+- Readers: SHADOZ, BAS, NASA AMES files, Vaisala
+- Writers: WOUDC totalozone [daily summary](https://woudc.org/archive/Summaries/TotalOzone/Daily_Summary/FileFormat_DV.txt) (master file)
 
-### Installation Instructions
+## Installation
 
-## Requirements
-woudc-formats requires Python 3.6 and above.
+### pip
 
-## Dependencies
-See `requirements.txt`
-- [pywoudc](https://github.com/woudc/pywoudc)
-- [woudc-extcsv](https://github.com/woudc/woudc-extcsv)
-- [pyshadoz](https://github.com/wmo-cop/pyshadoz)
+Install latest stable version from [PyPI](https://pypi.org/project/woudc-formats).
 
-## Setup
 ```bash
-git clone https://github.com/woudc/woudc-formats.git && cd woudc-formats
-python setup.py install
+pip3 install woudc-formats
+```
+
+### From source
+Install latest development version.
+
+```bash
+python3 -m venv woudc-formats
+cd woudc-formats
+. bin/activate
+git clone https://github.com/woudc/woudc-formats.git
+cd woudc-formats
+pip3 install .
 ```
 
 ## Usage
@@ -48,36 +50,32 @@ Optional Arguments:
     --agency: agency name in WOUDC
     --metadata: a dictionary formatted string containing some specified station metadation information
             ex: {"inst type": "ECC", "inst number": "XXXXX", "SA": "XX" , "ID" : "XXX", "country": "XXX", "GAW_ID": "XXX"}
+```
 
-Importance:
-    For AMES-2160 format, --agency argument is required in order to process the file.
-    For Vaisala format, --station and --agency in arguments and 'ID', 'GAW_ID', 'country', and 'SA' arguments in --metadata are required in order to process the file.
+Note:
+- For AMES-2160 format, --agency argument is required in order to process the file.
+- For Vaisala format, --station and --agency in arguments and 'ID', 'GAW_ID', 'country', and 'SA' arguments in --metadata are required in order to process the file.
 ```
 
 ### API
 ```bash
-usage: 
 import woudc_formats
+
+# load from file
 ecsv = woudc_formats.load(In_Format, InPut_File_Path, station, agency)
+
 if ecsv is not None:
     woudc_formats.dump(ecsv, Output_file_path)
 
-OR
-
-import woudc_formats
+# load from string
 with open(input_file_path) as ff
     ff.read()
 ecsv = woudc_formats.loads(In_Format, s)
 if ecsv is not None:
     woudc_formats.dump(ecsv, Output_file_path)
-
-Optional Method:
-woudc_formats.load(In_Format, InPut_File_Path, station, agency, metadata) : Take input file path and return ext-csv object, agency is required for AMES file and metadata is required for Vaisala, see optional arguments for Command Line Interface for more detail.
-woudc_formats.loads(In_Format,String_of_InPut_file, station, agency, metadata) : Take string represenataion of input file and return ext-csv object. Station and agency are required for AMES file and metadata is required for Vaisala, see optional arguments for Command Line Interface for more detail.
-woudc_formats.dump(ecsv, Output_file_path) : Take ext-csv object and produce output file.
-woudc_formats.dumps(ecsv) : Take ext-csv object and prints to screen.
 ```
-### Example
+
+### Running
 ```bash
 woudc-formats.py --format SHADOZ --inpath ./bin/SAMPLE.dat --outpath ./bin/SAMPLE.csv --logfile ./bin/LOG.log --loglevel DEBUG
 woudc-formats.py --format totalozone-masterfile --inpath <full local or web path to totalozone snapshot> --outpath <output path> --loglevel <log level> --logfile <log file>
@@ -86,3 +84,64 @@ woudc-formats.py --format AMES-2160 --inpath <full local path to AMES file> --ou
 For Agency 'AWI-NM':
 woudc-formats.py --format AMES-2160 --inpath INPATH --logfile log.log --loglevel DEBUG --agency AWI-NM
 ```
+
+## Development
+
+```bash
+python3 -m venv woudc-formats
+cd woudc-formats
+source bin/activate
+git clone https://github.com/woudc/woudc-formats.git
+cd woudc-formats
+pip3 install .
+pip3 install ".[dev]"
+```
+
+### Running Tests
+
+```bash
+python3 tests/test.py
+```
+
+## Releasing
+
+```bash
+# create release (x.y.z is the release version)
+vi pyproject.toml  # update [project]/version
+git commit -am 'update release version x.y.z'
+git push origin master
+git tag -a x.y.z -m 'tagging release version x.y.z'
+git push --tags
+
+# upload to PyPI
+rm -fr build dist *.egg-info
+python3 -m build
+twine upload dist/*
+
+# publish release on GitHub (https://github.com/woudc/woudc-formats/releases/new)
+
+# bump version back to dev
+vi pyproject.toml  # update [project]/version
+git commit -am 'back to dev'
+git push origin master
+```
+
+### Code Conventions
+
+woudc-formats code conventions are as per
+[PEP8](https://www.python.org/dev/peps/pep-0008).
+
+```bash
+# code should always pass the following
+find -type f -name "*.py" | xargs flake8
+```
+
+## Issues
+
+All bugs, enhancements and issues are managed on
+[GitHub](https://github.com/woudc/woudc-formats/issues).
+
+## Contact
+
+* [Tom Kralidis](https://github.com/tomkralidis)
+* [Thinesh Sornalingam](https://github.com/thineshsornalingam)

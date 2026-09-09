@@ -18,7 +18,7 @@
 # those files. Users are asked to read the 3rd Party Licenses
 # referenced with those assets.
 #
-# Copyright (c) 2015 Government of Canada
+# Copyright (c) 2026 Government of Canada
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -53,7 +53,7 @@ from woudc_formats.util import setup_logger
 logfile = 'PATH TO LOG FILE'
 loglevel = 'DEBUG'
 
-setup_logger(logfile, loglevel)
+setup_logger(loglevel, logfile)
 LOGGER = logging.getLogger(__name__)
 
 outpath = 'PATH TO OUTPUT EXT-CSV FILE'

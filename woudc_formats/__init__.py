@@ -17,7 +17,7 @@
 # those files. Users are asked to read the 3rd Party Licenses
 # referenced with those assets.
 #
-# Copyright (c) 2017 Government of Canada
+# Copyright (c) 2026 Government of Canada
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -53,12 +53,10 @@ import ntpath
 from pyshadoz import SHADOZ
 import nappy
 
-__version__ = "0.3.0"
-
 LOGGER = logging.getLogger(__name__)
 
 
-class converter(object):
+class converter:
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -314,7 +312,7 @@ class shadoz_converter(converter):
 
         try:
             LOGGER.info('Getting station metadata by pywoudc.')
-            station_metadata = client.get_station_metadata()
+            station_metadata = client.get_metadata('deployments')
         except Exception as err:
             msg = 'Unable to get metadata from pywoudc due to: %s' % str(err)
             LOGGER.error(msg)
@@ -323,9 +321,9 @@ class shadoz_converter(converter):
         # Collecting station metadata by using pywoudc
         # Station name and agency name is required to find
         # Station metadata from pywoudc
-        header_list = ['type', 'ID', 'station', 'country', 'gaw_id']
-        pywoudc_header_list = ['platform_type', 'platform_id', 'platform_name',
-                               'country_code', 'gaw_id']
+        header_list = ['type', 'ID', 'station', 'country']
+        pywoudc_header_list = ['station_type', 'station_id', 'station_name',
+                               'country_name_en', 'gaw_id']
         temp_dict = {}
         for item in header_list:
             temp_dict[item] = ''
@@ -346,8 +344,8 @@ class shadoz_converter(converter):
             LOGGER.info('Processing station metadata information.')
             for row in station_metadata['features']:
                 properties = row['properties']
-                if all([properties['platform_name'] in [station, station_ltn],
-                        Agency == properties['acronym']]):
+                if all([properties['station_name'] in [station, station_ltn],
+                        Agency == properties['contributor_acronym']]):
                     # Match station record in WOUDC database
                     LOGGER.info('Station found in Woudc_System, starting processing platform information.')  # noqa
                     for ind in range(len(header_list)):
@@ -654,7 +652,7 @@ class Vaisala_converter(converter):
 
         try:
             self.station_info["Data_Generation"] = [
-                datetime.datetime.utcnow().strftime('%Y-%m-%d'),
+                datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d'),  # noqa
                 agency_name,
                 '1',
                 metadata_dic['SA']
@@ -1363,7 +1361,7 @@ class AMES_2160_converter(converter):
 
         try:
             LOGGER.info('Getting station metadata from pywoudc.')
-            station_metadata = client.get_station_metadata(raw=False)
+            station_metadata = client.get_metadata('deployments')
         except Exception as err:
             msg = 'Unable to get station metadata from pywoudc due to: %s' % str(err)  # noqa
             LOGGER.error(msg)
@@ -1383,7 +1381,7 @@ class AMES_2160_converter(converter):
             for row in station_metadata['features']:
                 properties = row['properties']
                 # geometry = row['geometry']['coordinates']
-                if platform_name.lower() == properties['platform_name'].lower(): # noqa
+                if platform_name.lower() == properties['station_name'].lower():
                     properties_list.append(properties)
                     # geometry_list.append(geometry)
                     counter = counter + 1
@@ -1399,20 +1397,20 @@ class AMES_2160_converter(converter):
                     msg = 'Unable to find the station in lookup due to: %s' % str(err)  # noqa
                     LOGGER.error(msg)
             elif counter == 1:
-                ID = properties_list[0]['platform_id']
-                Type = properties_list[0]['platform_type']
-                Country = properties_list[0]['country_code']
-                GAW = properties_list[0]['gaw_id']
+                ID = properties_list[0]['station_id']
+                Type = properties_list[0]['station_type']
+                Country = properties_list[0]['country_name_en']
+                GAW = properties_list.get('gaw_id', 'unknown')
                 # Lat = str(geometry_list[0][1])
                 # Long = str(geometry_list[0][0])
             else:
                 length = 0
                 for item in properties_list:
-                    if item['acronym'].lower() == agency_name.lower() or item['contributor_name'].lower() == agency_name.lower():  # noqa
-                        ID = item['platform_id']
-                        Type = item['platform_type']
-                        Country = item['country_code']
-                        GAW = item['gaw_id']
+                    if item['contributor_acronym'].lower() == agency_name.lower() or item['contributor_name'].lower() == agency_name.lower():  # noqa
+                        ID = item['station_id']
+                        Type = item['station_type']
+                        Country = item['country_name_en']
+                        GAW = 'unknown'
                         # Lat = str(geometry_list[length][1])
                         # Long = str(geometry_list[length][0])
                     length = length + 1
@@ -1873,7 +1871,7 @@ def cli():
         output_path = '%s.csv' % ARGS.inpath
     # setup logging
     if ARGS.loglevel and ARGS.logfile:
-        util.setup_logger(ARGS.logfile, ARGS.loglevel)
+        util.setup_logger(ARGS.loglevel, ARGS.logfile)
 
     """
     if ARGS.format == 'totalozone-masterfile':
