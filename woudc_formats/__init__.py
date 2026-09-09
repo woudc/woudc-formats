@@ -323,7 +323,7 @@ class shadoz_converter(converter):
         # Station metadata from pywoudc
         header_list = ['type', 'ID', 'station', 'country']
         pywoudc_header_list = ['station_type', 'station_id', 'station_name',
-                               'country_name_en']
+                               'country_name_en', 'gaw_id']
         temp_dict = {}
         for item in header_list:
             temp_dict[item] = ''
@@ -1400,7 +1400,7 @@ class AMES_2160_converter(converter):
                 ID = properties_list[0]['station_id']
                 Type = properties_list[0]['station_type']
                 Country = properties_list[0]['country_name_en']
-                GAW = 'unknown'
+                GAW = properties_list.get('gaw_id', 'unknown')
                 # Lat = str(geometry_list[0][1])
                 # Long = str(geometry_list[0][0])
             else:
