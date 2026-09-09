@@ -652,7 +652,7 @@ class Vaisala_converter(converter):
 
         try:
             self.station_info["Data_Generation"] = [
-                datetime.datetime.now(datetime.UTC).strftime('%Y-%m-%d'),
+                datetime.datetime.now(datetime.timezone.utc).strftime('%Y-%m-%d'),  # noqa
                 agency_name,
                 '1',
                 metadata_dic['SA']
