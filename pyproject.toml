@@ -40,6 +40,9 @@ dependencies = [
 dev = ["Cython", "flake8"]
 release = ["build", "twine", "wheel"]
 
+[project.scripts]
+woudc-formats.py = "woudc_formats:cli"
+
 [project.urls]
 homepage = "https://github.com/woudc/woudc-formats"
 source = "https://github.com/woudc/woudc-formats"
